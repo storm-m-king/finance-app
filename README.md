@@ -40,7 +40,7 @@ Implementation is expected to conform to it.
 ---
 
 ## Repository Layout
-.
+```
 ├── docs/
 │   ├── design/
 │   │   └── expense-tracker-v1-design.md
@@ -54,3 +54,4 @@ Implementation is expected to conform to it.
 │           ├── 02-import-sequence.png
 │           └── ...
 └── README.md
+```
