@@ -1,0 +1,27 @@
+@startuml
+actor User
+participant "ImportViewModel" as VM
+participant "ImportService" as Import
+participant "FingerprintService" as FP
+participant "TransactionRepo" as Repo
+participant "RuleEngine" as Rules
+participant "CategoryRepo" as CatRepo
+
+User -> VM: Select Account + CSV
+VM -> Import: Preview(accountId, csvPath)
+Import -> FP: Parse rows + compute fingerprints
+Import -> Repo: Lookup existing fingerprints(accountId, batch)
+Repo --> Import: Existing fingerprint set
+Import --> VM: Preview rows (new vs duplicate)
+
+User -> VM: Confirm Import
+VM -> Import: Import(accountId, rows)
+loop each NEW row
+  Import -> FP: Build Transaction (normalize desc + fingerprint)
+  Import -> Rules: Apply rules(transaction)
+  Rules --> Import: Category assignment (or Uncategorized)
+  Import -> CatRepo: Get system categories (Uncategorized/Transfer) if needed
+  Import -> Repo: Insert(transaction)
+end
+Import --> VM: Summary report (inserted, skipped)
+@enduml

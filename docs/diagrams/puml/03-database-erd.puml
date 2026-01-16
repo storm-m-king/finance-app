@@ -1,0 +1,68 @@
+@startuml
+hide circle
+skinparam linetype ortho
+
+entity "accounts" as accounts {
+  * id : TEXT (PK)
+  --
+  name : TEXT
+  type : INTEGER  <<Checking|Credit>>
+  is_archived : INTEGER
+  credit_sign_convention : INTEGER?  <<PositiveIsCharge|PositiveIsPayment>>
+}
+
+entity "categories" as categories {
+  * id : TEXT (PK)
+  --
+  name : TEXT
+  is_system : INTEGER
+  is_user_editable : INTEGER
+}
+
+entity "rules" as rules {
+  * id : TEXT (PK)
+  --
+  match_type : INTEGER  <<Contains>>
+  match_text : TEXT
+  category_id : TEXT (FK)
+  priority : INTEGER
+  enabled : INTEGER
+}
+
+entity "transactions" as transactions {
+  * id : TEXT (PK)
+  --
+  account_id : TEXT (FK)
+  posted_date : TEXT  <<YYYY-MM-DD>>
+  amount_cents : INTEGER
+  raw_description : TEXT
+  normalized_description : TEXT
+  category_id : TEXT (FK)
+  status : INTEGER  <<NeedsReview|Reviewed|Ignored>>
+  is_transfer : INTEGER
+  notes : TEXT?
+  source_file_name : TEXT?
+  import_timestamp : TEXT?
+  fingerprint : TEXT
+  --
+  UNIQUE(account_id, fingerprint)
+}
+
+accounts ||--o{ transactions : "1 to many"
+categories ||--o{ transactions : "1 to many"
+categories ||--o{ rules : "1 to many"
+
+note right of categories
+System rows required:
+- Uncategorized (locked)
+- Transfer (locked)
+end note
+
+note bottom of transactions
+Invariants enforced in business logic:
+- category_id is NOT NULL
+- if is_transfer = 1 => category_id = Transfer
+- if is_transfer = 0 and was toggled off => category_id = Uncategorized and status = NeedsReview
+end note
+
+@enduml

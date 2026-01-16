@@ -1,0 +1,39 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor User
+
+rectangle "App Shell" as Shell {
+  rectangle "Dashboard (Home)" as Dash
+  rectangle "Transactions" as Tx
+  rectangle "Import CSV" as Imp
+  rectangle "Categories" as Cat
+  rectangle "Rules" as Rules
+  rectangle "Accounts" as Acct
+}
+
+User --> Dash : Open app (default route)
+User --> Tx : Navigate
+User --> Imp : Navigate
+User --> Cat : Navigate
+User --> Rules : Navigate
+User --> Acct : Navigate
+
+Dash --> Tx : Click Top Category bar\n(or NeedsReview badge)\n=> open Transactions with filters
+
+note right of Tx
+Transactions filters (persisted per session):
+- Date range (default this month)
+- Account
+- Category
+- Status (NeedsReview/Reviewed/Ignored)
+- Show Transfers toggle
+- Include Ignored toggle (default OFF)
+end note
+
+Imp --> Tx : Import completed\n=> "View imported transactions"\npre-filter: Imported timestamp window
+Rules --> Tx : Re-run rules on selection\n=> results reflected in list
+Cat --> Tx : Category renamed\n=> reflected in list + filters
+Acct --> Imp : Account selected for import
+@enduml

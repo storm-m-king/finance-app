@@ -1,0 +1,103 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+class Account {
+  +Guid Id
+  +string Name
+  +AccountType Type
+  +bool IsArchived
+  +CreditSignConvention? CreditSignConvention
+}
+
+enum AccountType {
+  Checking
+  Credit
+}
+
+enum CreditSignConvention {
+  PositiveIsCharge
+  PositiveIsPayment
+}
+
+class Category {
+  +Guid Id
+  +string Name
+  +bool IsSystemCategory
+  +bool IsUserEditable
+}
+
+class Rule {
+  +Guid Id
+  +MatchType MatchType
+  +string MatchText
+  +Guid CategoryId
+  +int Priority
+  +bool Enabled
+}
+
+enum MatchType {
+  Contains
+}
+
+class Transaction {
+  +Guid Id
+  +Guid AccountId
+  +Date PostedDate
+  +long AmountCents
+  +string RawDescription
+  +string NormalizedDescription
+  +Guid CategoryId
+  +TransactionStatus Status
+  +bool IsTransfer
+  +string? Notes
+  +string? SourceFileName
+  +DateTime? ImportTimestamp
+  +string Fingerprint
+}
+
+enum TransactionStatus {
+  NeedsReview
+  Reviewed
+  Ignored
+}
+
+interface ITransactionRepository
+interface IAccountRepository
+interface ICategoryRepository
+interface IRuleRepository
+
+class ImportService
+class RuleEngine
+class ReportingService
+class FingerprintService
+class TransactionClassifier
+class TransactionService
+
+Account "1" -- "0..*" Transaction
+Category "1" -- "0..*" Transaction
+Category "1" -- "0..*" Rule
+
+ImportService ..> ITransactionRepository
+ImportService ..> FingerprintService
+ImportService ..> RuleEngine
+
+RuleEngine ..> IRuleRepository
+RuleEngine ..> ICategoryRepository
+
+ReportingService ..> ITransactionRepository
+ReportingService ..> TransactionClassifier
+ReportingService ..> IAccountRepository
+TransactionClassifier ..> Account
+TransactionClassifier ..> Transaction
+
+TransactionService ..> ITransactionRepository
+TransactionService ..> ICategoryRepository
+
+note right of TransactionService
+Enforces invariants:
+- IsTransfer => Category=Transfer
+- !IsTransfer => Category!=Transfer
+- Toggle OFF => Category=Uncategorized, Status=NeedsReview
+end note
+
+@enduml
