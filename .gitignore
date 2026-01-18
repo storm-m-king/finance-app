@@ -1,0 +1,46 @@
+# =========================
+# OS / Environment
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDEs / Editors
+# =========================
+
+# JetBrains Rider / IntelliJ
+.idea/
+
+# Visual Studio
+.vs/
+
+# VS Code
+.vscode/
+
+# =========================
+# .NET build artifacts
+# =========================
+
+# Build output
+bin/
+obj/
+
+# Test results
+TestResults/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+
+# =========================
+# User-specific files
+# =========================
+*.user
+*.suo
+*.rsuser
+
+# =========================
+# Avalonia / .NET publish
+# =========================
+publish/
