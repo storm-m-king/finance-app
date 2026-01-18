@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <ProjectReference Include="..\ExpenseTracker.Domain\ExpenseTracker.Domain.csproj" />
+    </ItemGroup>
+</Project>
