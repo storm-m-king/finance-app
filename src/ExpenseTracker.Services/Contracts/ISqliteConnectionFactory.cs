@@ -1,6 +1,6 @@
 using System.Data;
 
-namespace ExpenseTracker.Infrastructure.Persistence;
+namespace ExpenseTracker.Services.Contracts;
 
 /// <summary>
 /// Factory for retrieving an open connection to the database.

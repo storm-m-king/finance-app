@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using ExpenseTracker.Infrastructure.Configuration;
+using ExpenseTracker.Services.Contracts;
 
 namespace ExpenseTracker.Infrastructure.Logging;
 
@@ -8,7 +9,7 @@ namespace ExpenseTracker.Infrastructure.Logging;
 /// Logger for the Application.
 /// Writes logs to both console output and a Log file.
 /// </summary>
-public static class AppLogger
+public class AppLogger :IAppLogger
 {
     private static readonly object _lock = new();
     private static string? _logFilePath;
@@ -18,7 +19,7 @@ public static class AppLogger
     /// <summary>
     /// Initialize the app logger by creating the directory.
     /// </summary>
-    public static void Initialize()
+    public void Initialize()
     {
         var baseDir = AppPaths.GetLogsDirectory();
 
@@ -35,14 +36,14 @@ public static class AppLogger
     /// Logs an Info message.
     /// </summary>
     /// <param name="message">The text to log.</param>
-    public static void Info(string message) =>
+    public void Info(string message) =>
         Write("INFO", message);
 
     /// <summary>
     /// Logs a Warning message.
     /// </summary>
     /// <param name="message">The text to log.</param>
-    public static void Warn(string message) =>
+    public void Warn(string message) =>
         Write("WARN", message);
 
     /// <summary>
@@ -50,7 +51,7 @@ public static class AppLogger
     /// </summary>
     /// <param name="message">The text to log.</param>
     /// <param name="ex">[Optional] An exception to log.</param>
-    public static void Error(string message, Exception? ex = null)
+    public void Error(string message, Exception? ex = null)
     {
         Write("ERROR", message);
 
@@ -63,7 +64,7 @@ public static class AppLogger
     /// </summary>
     /// <param name="name">The name of the step to log.</param>
     /// <param name="action">The action to perform.</param>
-    public static void Trace(string name, Action action)
+    public void Trace(string name, Action action)
     {
         Trace<object?>(
             name,
@@ -76,9 +77,7 @@ public static class AppLogger
     /// </summary>
     /// <param name="name">The name of the step to log.</param>
     /// <param name="func">The function to perform.</param>
-    public static T Trace<T>(
-        string name,
-        Func<T> func)
+    public T Trace<T>(string name, Func<T> func)
     {
         Info($"STEP     {name}  status=begin");
 
@@ -101,7 +100,7 @@ public static class AppLogger
     /// </summary>
     /// <param name="level">The log level (e.g. INFO, WARN, ERROR).</param>
     /// <param name="message">The text to log.</param>
-    private static void Write(string level, string message)
+    private void Write(string level, string message)
     {
         var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{level}] {message}";
 
@@ -122,7 +121,7 @@ public static class AppLogger
     /// Enforces that the number of log files never exceeds the maximum allotted size.
     /// </summary>
     /// <param name="logDirectory">The log directory to clean up.</param>
-    private static void CleanupOldLogFiles(string logDirectory)
+    private void CleanupOldLogFiles(string logDirectory)
     {
         var files = new DirectoryInfo(logDirectory)
             .GetFiles("ExpenseTracker-*.log")
@@ -150,7 +149,7 @@ public static class AppLogger
     /// <summary>
     /// Enforces that the log file never exceeds the maximum allotted size.
     /// </summary>
-    private static void EnforceFileSizeLimit()
+    private void EnforceFileSizeLimit()
     {
         var info = new FileInfo(_logFilePath!);
 

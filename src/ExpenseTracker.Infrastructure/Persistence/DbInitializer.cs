@@ -1,7 +1,7 @@
 using System.IO;
 using Dapper;
 using ExpenseTracker.Infrastructure.Configuration;
-using ExpenseTracker.Infrastructure.Logging;
+using ExpenseTracker.Services.Contracts;
 
 namespace ExpenseTracker.Infrastructure.Persistence;
 

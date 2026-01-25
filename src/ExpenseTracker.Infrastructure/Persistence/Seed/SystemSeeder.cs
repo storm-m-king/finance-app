@@ -1,5 +1,6 @@
 using Dapper;
 using ExpenseTracker.Infrastructure.Logging;
+using ExpenseTracker.Services.Contracts;
 
 namespace ExpenseTracker.Infrastructure.Persistence.Seed;
 
@@ -8,12 +9,17 @@ namespace ExpenseTracker.Infrastructure.Persistence.Seed;
 /// </summary>
 public sealed class SystemSeeder
 {
-    private readonly ISqliteConnectionFactory _factory;
-    
     private static readonly Guid UncategorizedId = Guid.Parse("00000000-0000-0000-0000-000000000001");
     private static readonly Guid TransferId      = Guid.Parse("00000000-0000-0000-0000-000000000002");
 
-    public SystemSeeder(ISqliteConnectionFactory factory) => _factory = factory;
+    private readonly IAppLogger _appLogger;
+    private readonly ISqliteConnectionFactory _factory;
+
+    public SystemSeeder(IAppLogger appLogger, ISqliteConnectionFactory factory)
+    {
+        _appLogger = appLogger;
+        _factory = factory;
+    }
 
     /// <summary>
     /// Seeds the database with default categories.
@@ -30,6 +36,6 @@ public sealed class SystemSeeder
             new { Id = TransferId.ToString(), Name = "Transfer" }
         });
                 
-        AppLogger.Info($"Applied System Seeder. Rows effected={rowsEffected}");
+        _appLogger.Info($"Applied System Seeder. Rows effected={rowsEffected}");
     }
 }
