@@ -1,6 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <ItemGroup>
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="8.*" />
+        <PackageReference Include="Dapper" Version="2.*" />
+    </ItemGroup>
+    <ItemGroup>
         <ProjectReference Include="..\ExpenseTracker.Domain\ExpenseTracker.Domain.csproj" />
         <ProjectReference Include="..\ExpenseTracker.Services\ExpenseTracker.Services.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Include="Persistence/Schema/schema.sql" CopyToOutputDirectory="Always" />
     </ItemGroup>
 </Project>

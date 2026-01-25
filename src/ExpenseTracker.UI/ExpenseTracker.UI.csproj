@@ -3,7 +3,7 @@
         <OutputType>WinExe</OutputType>
         <UseAvalonia>true</UseAvalonia>
     </PropertyGroup>
-
+    
     <ItemGroup>
         <ProjectReference Include="..\ExpenseTracker.Services\ExpenseTracker.Services.csproj" />
         <ProjectReference Include="..\ExpenseTracker.Infrastructure\ExpenseTracker.Infrastructure.csproj" />
