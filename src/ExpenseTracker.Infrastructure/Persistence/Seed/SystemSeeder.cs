@@ -3,16 +3,21 @@ using ExpenseTracker.Infrastructure.Logging;
 
 namespace ExpenseTracker.Infrastructure.Persistence.Seed;
 
+/// <summary>
+/// Responsible for seeding the database with default values.
+/// </summary>
 public sealed class SystemSeeder
 {
     private readonly ISqliteConnectionFactory _factory;
-
-    // You can define these IDs as constants in Domain.Constants.SystemCategories
+    
     private static readonly Guid UncategorizedId = Guid.Parse("00000000-0000-0000-0000-000000000001");
     private static readonly Guid TransferId      = Guid.Parse("00000000-0000-0000-0000-000000000002");
 
     public SystemSeeder(ISqliteConnectionFactory factory) => _factory = factory;
 
+    /// <summary>
+    /// Seeds the database with default categories.
+    /// </summary>
     public void Seed()
     {
         using var conn = _factory.CreateOpenConnection();

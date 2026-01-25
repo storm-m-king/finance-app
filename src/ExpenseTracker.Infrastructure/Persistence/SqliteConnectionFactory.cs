@@ -5,6 +5,9 @@ using ExpenseTracker.Infrastructure.Logging;
 
 namespace ExpenseTracker.Infrastructure.Persistence;
 
+/// <summary>
+/// Factory for retrieving connections to the db for executing queries.
+/// </summary>
 public sealed class SqliteConnectionFactory : ISqliteConnectionFactory
 {
     // <inheritdoc>
