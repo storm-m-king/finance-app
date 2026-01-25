@@ -1,7 +1,7 @@
 using System.Data;
 using Microsoft.Data.Sqlite;
 using ExpenseTracker.Infrastructure.Configuration;
-using ExpenseTracker.Infrastructure.Logging;
+using ExpenseTracker.Services.Contracts;
 
 namespace ExpenseTracker.Infrastructure.Persistence;
 

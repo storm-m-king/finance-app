@@ -4,50 +4,93 @@ using ExpenseTracker.Infrastructure.Configuration;
 using ExpenseTracker.Infrastructure.Logging;
 using ExpenseTracker.Infrastructure.Persistence;
 using ExpenseTracker.Infrastructure.Persistence.Seed;
+using ExpenseTracker.Services.Contracts;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ExpenseTracker.UI;
 
+/// <summary>
+/// Application entry point and composition root.
+/// Responsible for configuring dependency injection, executing startup
+/// initialization tasks, and launching the Avalonia desktop application.
+/// </summary>
 internal static class Program
 {
-    // Avalonia configuration, don't remove; also used by visual designer.
+    /// <summary>
+    /// Configures the Avalonia application builder.
+    /// This method is required by Avalonia tooling and the visual designer.
+    /// </summary>
+    /// <returns>A configured <see cref="AppBuilder"/> instance.</returns>
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .LogToTrace()
             .UseReactiveUI();
 
-    // Initialization code. Don't use any Avalonia, third-party APIs or any
-    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized yet.
+    /// <summary>
+    /// Application entry point.
+    /// Performs all non-UI startup work before starting the Avalonia UI lifetime.
+    /// Avalonia APIs must not be invoked before the desktop lifetime begins.
+    /// </summary>
+    /// <param name="args">Command-line arguments.</param>
     [STAThread]
     public static void Main(string[] args)
     {
-        // Setup the logger
-        AppLogger.Initialize();
-        AppLogger.Info("===================== Application started =====================");
-        AppLogger.Info($"{AppPaths.GetConfigurationSummary()}");
-        
-        // Create the SQLite DB locally
-        var factory = new SqliteConnectionFactory();
-        AppLogger.Trace("db.schema.apply",
-            () =>
-            {
-                var initializer = new DbInitializer(factory);
-                initializer.Initialize();
-            });
+        // Create and configure the dependency injection container.
+        var services = new ServiceCollection();
+        using var provider = ConfigureServices(services);
 
-        // Seed the DB with default values
-        AppLogger.Trace("db.seed",
-            () =>
-            {
-                var seeder = new SystemSeeder(factory);
-                seeder.Seed();
-            });
-        
-        // Build the Avalonia App
-        AppLogger.Trace("app.run",
-            () =>
-            {
-                BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
-            });
+        // Initialize logging as early as possible so all startup activity is captured.
+        var appLogger = provider.GetRequiredService<IAppLogger>();
+        appLogger.Initialize();
+        appLogger.Info("===================== Application started =====================");
+        appLogger.Info(AppPaths.GetConfigurationSummary());
+
+        // Ensure the local SQLite database schema exists.
+        appLogger.Trace("db.schema.apply", () =>
+        {
+            var initializer = provider.GetRequiredService<DbInitializer>();
+            initializer.Initialize();
+        });
+
+        // Seed the database with default/system data.
+        appLogger.Trace("db.seed", () =>
+        {
+            var seeder = provider.GetRequiredService<SystemSeeder>();
+            seeder.Seed();
+        });
+
+        // Start the Avalonia desktop application.
+        // This call blocks until the application exits.
+        appLogger.Trace("app.run", () =>
+        {
+            BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+        });
+    }
+
+    /// <summary>
+    /// Registers application services and builds the dependency injection container.
+    /// This method defines service lifetimes and enables container validation.
+    /// </summary>
+    /// <param name="services">The service collection to populate.</param>
+    /// <returns>A configured <see cref="ServiceProvider"/> instance.</returns>
+    private static ServiceProvider ConfigureServices(IServiceCollection services)
+    {
+        // Core infrastructure services shared for the lifetime of the application.
+        services.AddSingleton<IAppLogger, AppLogger>();
+        services.AddSingleton<ISqliteConnectionFactory, SqliteConnectionFactory>();
+
+        // Short-lived startup helpers used during application initialization.
+        services.AddTransient<DbInitializer>();
+        services.AddTransient<SystemSeeder>();
+
+        // Enable validation to fail fast on DI misconfiguration.
+        var options = new ServiceProviderOptions
+        {
+            ValidateOnBuild = true,
+            ValidateScopes = true
+        };
+
+        return services.BuildServiceProvider(options);
     }
 }

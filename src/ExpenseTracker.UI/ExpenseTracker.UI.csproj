@@ -12,5 +12,6 @@
         <PackageReference Include="Avalonia" Version="11.*" />
         <PackageReference Include="Avalonia.Desktop" Version="11.*" />
         <PackageReference Include="Avalonia.ReactiveUI" Version="11.*" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
     </ItemGroup>
 </Project>
