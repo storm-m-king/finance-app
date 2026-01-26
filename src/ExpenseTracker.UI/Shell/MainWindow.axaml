@@ -1,0 +1,145 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ExpenseTracker.UI.Shell"
+        xmlns:dash="using:ExpenseTracker.UI.Features.Dashboard"
+        xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
+        x:Class="ExpenseTracker.UI.Shell.MainWindow"
+        Width="1200" Height="750"
+        Title="Expense Tracker">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Window.DataTemplates>
+        <DataTemplate DataType="dash:DashboardViewModel">
+            <dash:DashboardView/>
+        </DataTemplate>
+
+        <DataTemplate DataType="vm:MainWindowViewModel+PlaceholderViewModel">
+            <Border Padding="24">
+                <TextBlock FontSize="28" Text="{Binding Title}" />
+            </Border>
+        </DataTemplate>
+    </Window.DataTemplates>
+
+    <!-- Slightly narrower sidebar -->
+    <Grid ColumnDefinitions="240,*">
+
+        <!-- LEFT NAV -->
+        <Border Background="#0F172A" Padding="18,18,18,18">
+            <Grid RowDefinitions="Auto,Auto,* ,Auto" RowSpacing="14">
+
+                <!-- Brand -->
+                <StackPanel Grid.Row="0" Spacing="4">
+                    <TextBlock Text="Finance"
+                               FontSize="26"
+                               FontWeight="Bold"/>
+                    <TextBlock Text="Personal Finance Manager"
+                               Classes="muted"
+                               FontSize="13"/>
+                </StackPanel>
+
+                <!-- Divider (restored) -->
+                <Border Grid.Row="1"
+                        Height="1"
+                        Background="White"
+                        Opacity="0.12"
+                        Margin="0,6,0,6"/>
+
+                <!-- Nav -->
+                <StackPanel Grid.Row="2" Spacing="10">
+
+                    <ToggleButton Classes="nav"
+                                  IsChecked="{Binding IsDashboardSelected}"
+                                  Command="{Binding GoDashboard}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <svg:Svg Width="18" Height="18"
+                                     Path="/Assets/Icons/dashboard.svg"
+                                     Stretch="Uniform"/>
+                            <TextBlock Text="Dashboard"/>
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <ToggleButton Classes="nav"
+                                  IsChecked="{Binding IsTransactionsSelected}"
+                                  Command="{Binding GoTransactions}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <svg:Svg Width="18" Height="18"
+                                     Path="/Assets/Icons/transactions.svg"
+                                     Stretch="Uniform"/>
+                            <TextBlock Text="Transactions"/>
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <ToggleButton Classes="nav"
+                                  IsChecked="{Binding IsImportSelected}"
+                                  Command="{Binding GoImport}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <svg:Svg Width="18" Height="18"
+                                     Path="/Assets/Icons/import.svg"
+                                     Stretch="Uniform"/>
+                            <TextBlock Text="Import"/>
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <ToggleButton Classes="nav"
+                                  IsChecked="{Binding IsCategoriesSelected}"
+                                  Command="{Binding GoCategories}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <svg:Svg Width="18" Height="18"
+                                     Path="/Assets/Icons/categories.svg"
+                                     Stretch="Uniform"/>
+                            <TextBlock Text="Categories"/>
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <ToggleButton Classes="nav"
+                                  IsChecked="{Binding IsRulesSelected}"
+                                  Command="{Binding GoRules}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <svg:Svg Width="18" Height="18"
+                                     Path="/Assets/Icons/rules.svg"
+                                     Stretch="Uniform"/>
+                            <TextBlock Text="Rules"/>
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <ToggleButton Classes="nav"
+                                  IsChecked="{Binding IsAccountsSelected}"
+                                  Command="{Binding GoAccounts}">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <svg:Svg Width="18" Height="18"
+                                     Path="/Assets/Icons/accounts.svg"
+                                     Stretch="Uniform"/>
+                            <TextBlock Text="Accounts"/>
+                        </StackPanel>
+                    </ToggleButton>
+
+                </StackPanel>
+
+                <!-- Current Month (fixed card at bottom) -->
+                <Border Grid.Row="3"
+                        Classes="card"
+                        Padding="16"
+                        Margin="0,12,0,0">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Current Month"
+                                   Classes="muted"
+                                   FontSize="12"/>
+                        <TextBlock Text="January 2026"
+                                   FontSize="20"
+                                   FontWeight="Bold"/>
+                    </StackPanel>
+                </Border>
+
+            </Grid>
+        </Border>
+
+        <!-- CONTENT -->
+        <Border Background="#0B1220" Padding="24" Grid.Column="1">
+            <ContentControl Content="{Binding Current}" />
+        </Border>
+
+    </Grid>
+</Window>

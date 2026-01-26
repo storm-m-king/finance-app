@@ -1,4 +1,211 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="ExpenseTracker.UI.App">
+             xmlns:fluent="clr-namespace:Avalonia.Themes.Fluent;assembly=Avalonia.Themes.Fluent"
+             x:Class="ExpenseTracker.UI.App"
+             RequestedThemeVariant="Dark">
+
+
+  <Application.Resources>
+    <!-- Muted category BRUSHES (app-scope so converters can resolve them) -->
+    <SolidColorBrush x:Key="CatBlue"   Color="#3A5FBF"/>
+    <SolidColorBrush x:Key="CatYellow" Color="#C9A640"/>
+    <SolidColorBrush x:Key="CatGreen"  Color="#3FA97A"/>
+    <SolidColorBrush x:Key="CatOrange" Color="#C56A2A"/>
+    <SolidColorBrush x:Key="CatPurple" Color="#7A4FCF"/>
+  </Application.Resources>
+
+  <Application.Styles>
+    <fluent:FluentTheme />
+
+    <!-- Global design resources -->
+    <Style>
+      <Style.Resources>
+
+        <!-- Core palette -->
+        <Color x:Key="Bg0">#070B16</Color>
+        <Color x:Key="Bg1">#0B1220</Color>
+        <Color x:Key="Panel">#0F172A</Color>
+
+        <Color x:Key="Card">#101C33</Color>
+        <Color x:Key="CardBorder">#1B2A4A</Color>
+
+        <Color x:Key="TextPrimary">#EAF0FF</Color>
+        <Color x:Key="TextMuted">#A7B4D1</Color>
+
+        <Color x:Key="Blue">#2D6BFF</Color>
+        <Color x:Key="Orange">#FF6A00</Color>
+
+        <!-- Card gradients -->
+        <LinearGradientBrush x:Key="CardGradientSubtle" StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Color="#111B2E" Offset="0"/>
+          <GradientStop Color="#0B1527" Offset="1"/>
+        </LinearGradientBrush>
+
+        <!-- Inset surface panels (chart placeholders, totals, etc.) -->
+        <Color x:Key="InsetBg">#0B1220</Color>
+        <Color x:Key="InsetBorder">#1C2A40</Color>
+
+        <!-- Bar track + border -->
+        <Color x:Key="BarTrackBg">#0B1220</Color>
+        <Color x:Key="BarTrackBorder">#1C2A40</Color>
+
+        <!-- Layout tokens -->
+        <Thickness x:Key="PagePadding">24</Thickness>
+        <CornerRadius x:Key="CardRadius">18</CornerRadius>
+
+      </Style.Resources>
+    </Style>
+
+    <!-- Default text tone + typography -->
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+      <Setter Property="FontFamily" Value=".AppleSystemUIFont"/>
+      <Setter Property="FontSize" Value="14"/>
+    </Style>
+
+
+    <!-- Muted text helper -->
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+      <Setter Property="Opacity" Value="0.9" />
+    </Style>
+
+    <!-- Card helper (NOW uses a subtle gradient instead of flat color) -->
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{DynamicResource CardGradientSubtle}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource CardBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="{DynamicResource CardRadius}" />
+      <Setter Property="Padding" Value="18" />
+    </Style>
+
+    <!-- Inset panel helper (use Classes="inset" on Border) -->
+    <Style Selector="Border.inset">
+      <Setter Property="Background" Value="{DynamicResource InsetBg}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource InsetBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="14" />
+    </Style>
+
+    <!-- Bar track helper (use Classes="barTrack" on Border) -->
+    <Style Selector="Border.barTrack">
+      <Setter Property="Background" Value="{DynamicResource BarTrackBg}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BarTrackBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Height" Value="14" />
+    </Style>
+
+    <!-- Bar fill helper (use Classes="barFill" on Border) -->
+    <Style Selector="Border.barFill">
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Height" Value="14" />
+    </Style>
+
+    <!-- NAV: base -->
+    <Style Selector="ToggleButton.nav">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
+
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="Padding" Value="14,12" />
+      <Setter Property="Margin" Value="0,2" />
+      <Setter Property="CornerRadius" Value="12" />
+
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Grid>
+            <!-- 1) Soft blue spill / ambient glow (hidden until selected) -->
+            <Border x:Name="GlowSpill"
+                    IsHitTestVisible="False"
+                    IsVisible="False"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    Margin="2,2,2,2"
+                    Background="#2D6BFF"
+                    Opacity="0.55"
+                    BoxShadow="0 10 28 2 #3A66FF66, 0 6 14 0 #2D6BFF55"/>
+
+            <!-- 2) Reflection band UNDER the pill (hidden until selected) -->
+            <Border x:Name="GlowReflection"
+                    IsHitTestVisible="False"
+                    IsVisible="False"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    Margin="0,22,0,-22">
+              <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                  <!-- brighter right under the pill -->
+                  <GradientStop Color="#2D6BFF55" Offset="0" />
+                  <GradientStop Color="#2D6BFF22" Offset="0.35" />
+                  <!-- fade to transparent -->
+                  <GradientStop Color="#00000000" Offset="1" />
+                </LinearGradientBrush>
+              </Border.Background>
+            </Border>
+
+            <!-- Main pill -->
+            <Border x:Name="Pill"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{TemplateBinding CornerRadius}"
+                    Padding="{TemplateBinding Padding}">
+              <ContentPresenter
+                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                  VerticalAlignment="Center"
+                  Content="{TemplateBinding Content}"/>
+            </Border>
+          </Grid>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+
+    <Style Selector="ToggleButton.nav:pointerover">
+      <Setter Property="Background" Value="#132243" />
+      <Setter Property="BorderBrush" Value="#223A66" />
+    </Style>
+
+    <Style Selector="ToggleButton.nav:checked">
+      <Setter Property="Background" Value="#163A7A" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Blue}" />
+      <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+    </Style>
+
+    <!-- Turn glow layers on when selected -->
+    <Style Selector="ToggleButton.nav:checked /template/ Border#GlowSpill">
+      <Setter Property="IsVisible" Value="True" />
+    </Style>
+
+    <Style Selector="ToggleButton.nav:checked /template/ Border#GlowReflection">
+      <Setter Property="IsVisible" Value="True" />
+    </Style>
+
+
+
+    <!-- Orange pill button -->
+    <Style Selector="Button.pill">
+      <Setter Property="Background" Value="{DynamicResource Orange}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Padding" Value="16,10" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="Button.pill:pointerover">
+      <Setter Property="Opacity" Value="0.95" />
+    </Style>
+
+    <!-- Basic button smoothing (optional, keeps defaults from feeling too sharp) -->
+    <Style Selector="Button">
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="12,10" />
+    </Style>
+
+  </Application.Styles>
 </Application>

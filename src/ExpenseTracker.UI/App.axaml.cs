@@ -1,19 +1,20 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using ExpenseTracker.Infrastructure.Configuration;
-using ExpenseTracker.Infrastructure.Logging;
-using ExpenseTracker.Infrastructure.Persistence;
-using ExpenseTracker.Infrastructure.Persistence.Seed;
+using Avalonia.Markup.Xaml;
+using ExpenseTracker.UI.Shell;
 
 namespace ExpenseTracker.UI;
 
-public sealed partial class App : Application
+public partial class App : Application
 {
+    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+
     public override void OnFrameworkInitializationCompleted()
     {
-        // Start the application window
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
             desktop.MainWindow = new MainWindow();
+        }
 
         base.OnFrameworkInitializationCompleted();
     }
