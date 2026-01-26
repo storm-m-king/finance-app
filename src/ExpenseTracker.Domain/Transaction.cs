@@ -55,7 +55,8 @@ public sealed class Transaction
     // Private constructor for ORM/serialization.
     private Transaction() { }
 
-    private Transaction(
+    private Transaction
+    (
         Guid id,
         Guid accountId,
         DateOnly postedDate,
@@ -68,7 +69,8 @@ public sealed class Transaction
         string? notes,
         string? sourceFileName,
         DateTimeOffset? importTimestamp,
-        string fingerprint)
+        string fingerprint
+    )
     {
         Id = id == Guid.Empty ? throw new ArgumentException("Id cannot be empty.", nameof(id)) : id;
         AccountId = accountId == Guid.Empty ? throw new ArgumentException("AccountId cannot be empty.", nameof(accountId)) : accountId;

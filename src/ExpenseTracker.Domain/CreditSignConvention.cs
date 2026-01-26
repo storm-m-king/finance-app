@@ -9,17 +9,21 @@ namespace ExpenseTracker.Domain;
 /// </remarks>
 public enum CreditSignConvention
 {
+    Unknown = 0,
+    
     /// <summary>
     /// Credits (money coming in) are represented as positive values,
     /// and debits (money going out) are represented as negative values.
     /// This is the most common convention.
     /// </summary>
-    CreditPositive_DebitNegative = 0,
+    CreditPositive_DebitNegative = 1,
 
     /// <summary>
     /// Credits (money coming in) are represented as negative values,
     /// and debits (money going out) are represented as positive values.
     /// Commonly seen in some credit card exports.
     /// </summary>
-    CreditNegative_DebitPositive = 1
+    CreditNegative_DebitPositive = 2,
+    
+    
 }

@@ -1,6 +1,6 @@
 namespace ExpenseTracker.Domain;
 
-public enum SystemCatagories
+public enum SystemCategories
 {
     Uncategorized,
     Transfer,

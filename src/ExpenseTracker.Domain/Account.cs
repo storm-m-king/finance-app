@@ -26,7 +26,18 @@ public sealed class Account
     /// Optional convention describing how a provider represents credits/debits for this account.
     /// Useful for imports where the sign meaning varies by institution.
     /// </summary>
-    public CreditSignConvention? CreditSignConvention { get; private set; }
+    public CreditSignConvention CreditSignConvention
+    {
+        get => CreditSignConvention;
+        private set
+        {
+            if (value == CreditSignConvention.Unknown)
+            {
+                throw new ArgumentException("CreditSignConvention cannot be unknown", nameof(CreditSignConvention));
+            }
+            CreditSignConvention = value;
+        }
+    }
 
     // Private constructor for ORM/serialization.
     private Account() { }
@@ -37,7 +48,7 @@ public sealed class Account
         string name,
         AccountType type,
         bool isArchived,
-        CreditSignConvention? creditSignConvention
+        CreditSignConvention creditSignConvention
     )
     {
         Id = id == Guid.Empty ? throw new ArgumentException("Id cannot be empty.", nameof(id)) : id;
@@ -58,7 +69,7 @@ public sealed class Account
     (
         string name,
         AccountType type,
-        CreditSignConvention? creditSignConvention = null,
+        CreditSignConvention creditSignConvention,
         Guid? id = null
     )
     {
@@ -96,7 +107,7 @@ public sealed class Account
     /// Updates the sign convention used when importing transactions for this account.
     /// </summary>
     /// <param name="convention">The sign convention to apply, or null to clear.</param>
-    public void SetCreditSignConvention(CreditSignConvention? convention)
+    public void SetCreditSignConvention(CreditSignConvention convention)
     {
         EnsureNotArchivedForMutation();
         CreditSignConvention = convention;
