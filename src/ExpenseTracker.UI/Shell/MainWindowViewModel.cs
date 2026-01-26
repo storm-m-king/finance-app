@@ -6,7 +6,7 @@ using ExpenseTracker.UI.Features.Dashboard;
 
 namespace ExpenseTracker.UI.Shell;
 
-public sealed class ShellViewModel : ViewModelBase
+public sealed class MainWindowViewModel : ViewModelBase
 {
     private ViewModelBase _current = new DashboardViewModel();
     public ViewModelBase Current
@@ -66,7 +66,7 @@ public sealed class ShellViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> GoRules { get; }
     public ReactiveCommand<Unit, Unit> GoAccounts { get; }
 
-    public ShellViewModel()
+    public MainWindowViewModel()
     {
         GoDashboard = ReactiveCommand.Create(() =>
         {

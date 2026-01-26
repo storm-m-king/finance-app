@@ -8,7 +8,7 @@
         Title="Expense Tracker">
 
     <Design.DataContext>
-        <vm:ShellViewModel/>
+        <vm:MainWindowViewModel/>
     </Design.DataContext>
 
     <Window.DataTemplates>
@@ -16,7 +16,7 @@
             <dash:DashboardView/>
         </DataTemplate>
 
-        <DataTemplate DataType="vm:ShellViewModel+PlaceholderViewModel">
+        <DataTemplate DataType="vm:MainWindowViewModel+PlaceholderViewModel">
             <Border Padding="24">
                 <TextBlock FontSize="28" Text="{Binding Title}" />
             </Border>

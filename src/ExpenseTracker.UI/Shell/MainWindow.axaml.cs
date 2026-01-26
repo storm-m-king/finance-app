@@ -8,7 +8,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        DataContext = new ShellViewModel();
+        DataContext = new MainWindowViewModel();
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
