@@ -1,4 +1,3 @@
-using System.IO;
 using Dapper;
 using ExpenseTracker.Infrastructure.Configuration;
 using ExpenseTracker.Services.Contracts;
