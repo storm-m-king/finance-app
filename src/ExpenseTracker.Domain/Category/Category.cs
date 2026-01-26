@@ -14,7 +14,7 @@ namespace ExpenseTracker.Domain.Category;
 /// User categories may be renamed, subject to domain validation rules.
 /// </para>
 /// </remarks>
-public sealed class Category
+public sealed class Category : ICategory
 {
     /// <summary>
     /// Gets the unique identifier for this category.
@@ -106,7 +106,7 @@ public sealed class Category
     /// System categories cannot be renamed. Attempting to do so results in an exception.
     /// </para>
     /// </remarks>
-    public Category Rename(string newName)
+    public ICategory Rename(string newName)
     {
         if (!IsUserEditable)
             throw new InvalidOperationException("System categories cannot be renamed.");

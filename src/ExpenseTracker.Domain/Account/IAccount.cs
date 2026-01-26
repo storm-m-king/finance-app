@@ -1,5 +1,4 @@
-using ExpenseTracker.Domain.Account;
-namespace ExpenseTracker.Services.Contracts;
+namespace ExpenseTracker.Domain.Account;
 
 /// <summary>
 /// Represents a financial account (e.g., checking, savings, credit card)

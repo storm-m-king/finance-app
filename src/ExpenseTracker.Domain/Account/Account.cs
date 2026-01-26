@@ -5,7 +5,7 @@ namespace ExpenseTracker.Domain.Account;
 /// Enforces basic invariants (valid ID, valid name) and provides intention-revealing operations
 /// for state changes such as archiving and renaming.
 /// </summary>
-public sealed class Account
+public sealed class Account : IAccount
 {
     /// <summary>Unique identifier for this account.</summary>
     public Guid Id { get; private set; }
