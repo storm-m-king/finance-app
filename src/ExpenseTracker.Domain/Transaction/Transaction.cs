@@ -1,4 +1,5 @@
-namespace ExpenseTracker.Domain;
+namespace ExpenseTracker.Domain.Transaction;
+
 /// <summary>
 /// Represents a financial transaction imported or created in the system.
 /// This entity enforces basic invariants (valid IDs, required text fields, valid amounts)

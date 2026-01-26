@@ -1,4 +1,5 @@
-namespace ExpenseTracker.Domain;
+namespace ExpenseTracker.Domain.Account;
+
 /// <summary>
 /// Defines how a financial institution represents credits and debits
 /// when exporting transaction amounts.
@@ -24,6 +25,4 @@ public enum CreditSignConvention
     /// Commonly seen in some credit card exports.
     /// </summary>
     CreditNegative_DebitPositive = 2,
-    
-    
 }

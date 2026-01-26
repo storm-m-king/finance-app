@@ -1,4 +1,4 @@
-namespace ExpenseTracker.Domain;
+namespace ExpenseTracker.Domain.Account;
 
 /// <summary>
 /// Represents a financial account (e.g., checking, savings, credit card) that owns transactions.
