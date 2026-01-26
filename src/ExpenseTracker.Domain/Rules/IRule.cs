@@ -1,5 +1,4 @@
-using ExpenseTracker.Domain.Rules;
-namespace ExpenseTracker.Services.Contracts;
+namespace ExpenseTracker.Domain.Rules;
 
 /// <summary>
 /// Represents a categorization rule that may assign a category

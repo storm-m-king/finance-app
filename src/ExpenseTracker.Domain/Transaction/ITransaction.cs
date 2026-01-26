@@ -1,5 +1,4 @@
-using ExpenseTracker.Domain.Transaction;
-namespace ExpenseTracker.Services.Contracts;
+namespace ExpenseTracker.Domain.Transaction;
 
 /// <summary>
 /// Represents a financial transaction imported or created in the system.

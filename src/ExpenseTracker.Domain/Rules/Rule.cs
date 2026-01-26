@@ -17,7 +17,7 @@ namespace ExpenseTracker.Domain.Rules;
 /// Rules are immutable. Any modification results in a new instance.
 /// </para>
 /// </remarks>
-public sealed class Rule
+public sealed class Rule : IRule
 {
     /// <summary>Unique identifier for this rule.</summary>
     public Guid Id { get; }
@@ -82,12 +82,12 @@ public sealed class Rule
     /// <summary>
     /// Returns an enabled version of this rule.
     /// </summary>
-    public Rule Enable()
+    public IRule Enable()
         => Enabled ? this : new Rule(Id, Condition, CategoryId, Priority, enabled: true);
 
     /// <summary>
     /// Returns a disabled version of this rule.
     /// </summary>
-    public Rule Disable()
+    public IRule Disable()
         => !Enabled ? this : new Rule(Id, Condition, CategoryId, Priority, enabled: false);
 }

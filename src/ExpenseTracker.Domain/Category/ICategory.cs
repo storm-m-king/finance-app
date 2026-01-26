@@ -1,4 +1,4 @@
-namespace ExpenseTracker.Services.Contracts;
+namespace ExpenseTracker.Domain.Category;
 
 /// <summary>
 /// Represents a transaction category used for classification and reporting

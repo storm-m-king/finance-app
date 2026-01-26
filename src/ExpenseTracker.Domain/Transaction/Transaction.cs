@@ -5,7 +5,7 @@ namespace ExpenseTracker.Domain.Transaction;
 /// This entity enforces basic invariants (valid IDs, required text fields, valid amounts)
 /// and exposes intention-revealing operations for state changes.
 /// </summary>
-public sealed class Transaction
+public sealed class Transaction : ITransaction
 {
     /// <summary>Unique identifier for this transaction.</summary>
     public Guid Id { get; private set; }
