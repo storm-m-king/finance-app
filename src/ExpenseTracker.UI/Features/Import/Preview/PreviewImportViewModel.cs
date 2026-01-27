@@ -19,7 +19,7 @@ public sealed class PreviewImportViewModel : ViewModelBase
     private readonly Action _onBack;
     private readonly Action<int> _onImport;
 
-    public PreviewImportViewModel(string selectedPath, string mappingProfile, Action onBack, Action<int> onImport)
+    public PreviewImportViewModel(string selectedFilePath, string mappingProfile, Action onBack, Action<int> onImport)
     {
         _onBack = onBack;
         _onImport = onImport;

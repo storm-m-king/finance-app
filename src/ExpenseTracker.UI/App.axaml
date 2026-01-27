@@ -265,7 +265,20 @@
     <Style Selector="Button:pressed">
       <Setter Property="Opacity" Value="0.70"/>
     </Style>
+    
+    <Style Selector="Rectangle.dropOutline">
+      <Setter Property="Stroke" Value="#2A3D66"/>
+    </Style>
 
+    <!-- Hover ONLY when mouse is over the drop zone -->
+    <Style Selector="Border.dropZone:pointerover Rectangle.dropOutline">
+      <Setter Property="Stroke" Value="#4DA3FF"/>
+    </Style>
+
+    <!-- Drag-over ONLY when a file is being dragged over the drop zone -->
+    <Style Selector="Border.dropZone:dragover Rectangle.dropOutline">
+      <Setter Property="Stroke" Value="#66B5FF"/>
+    </Style>
 
   </Application.Styles>
 </Application>

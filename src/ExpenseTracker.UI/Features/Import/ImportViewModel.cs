@@ -15,8 +15,6 @@ public sealed class ImportViewModel : ViewModelBase
         "",
         "Amex",
         "SoFi Checking",
-        "Capital One",
-        "Chase"
     };
 
     private string? _selectedMappingProfile;
@@ -47,13 +45,6 @@ public sealed class ImportViewModel : ViewModelBase
     {
         get => _selectedFileAbsolutePath;
         private set => this.RaiseAndSetIfChanged(ref _selectedFileAbsolutePath, value);
-    }
-    
-    private ImportFile? _selectedImportFile;
-    public ImportFile? SelectedImportFile 
-    {
-        get => _selectedImportFile;
-        private set => this.RaiseAndSetIfChanged(ref _selectedImportFile, value);
     }
     
     public bool HasSelectedFile => !string.IsNullOrWhiteSpace(SelectedFileName);
@@ -95,9 +86,6 @@ public sealed class ImportViewModel : ViewModelBase
     {
         SelectedFileName = file.Name;
         SelectedFileAbsolutePath = file.Path.AbsolutePath;
-        SelectedImportFile = new ImportFile(
-            FileName: file.Name,
-            AbsolutePath: file.Path.AbsolutePath);
         
         this.RaisePropertyChanged(nameof(HasSelectedFile));
         this.RaisePropertyChanged(nameof(CanContinue));

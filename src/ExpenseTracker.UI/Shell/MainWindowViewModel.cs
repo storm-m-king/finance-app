@@ -130,7 +130,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         SelectNav(import: true);
 
         Current = new PreviewImportViewModel(
-            selectedPath: selectedFilePathOrUri,
+            selectedFilePath: selectedFilePathOrUri,
             mappingProfile: mappingProfile,
             onBack: () => ShowImportUpload(),
             onImport: importedCount =>

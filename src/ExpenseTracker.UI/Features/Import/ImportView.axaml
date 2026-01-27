@@ -128,7 +128,8 @@
                         Width="860">
 
               <!-- Drop zone -->
-              <Border Height="220"
+              <Border Classes="dropZone"
+                      Height="220"
                       CornerRadius="18"
                       Background="#0B1220"
                       BorderBrush="#1C2A40"
@@ -143,10 +144,11 @@
                   <shapes:Rectangle Margin="22"
                                     RadiusX="14"
                                     RadiusY="14"
-                                    Stroke="#2A3D66"
+                                    Classes="dropOutline"
                                     StrokeThickness="2"
                                     StrokeDashArray="4,4"
                                     Fill="Transparent"/>
+
 
                   <!-- centered content -->
                   <StackPanel Spacing="10"
