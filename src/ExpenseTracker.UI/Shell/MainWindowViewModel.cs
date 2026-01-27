@@ -144,11 +144,6 @@ public sealed class MainWindowViewModel : ViewModelBase
             });
     }
 
-    private void ShowTransactions()
-    {
-        GoTransactions.Execute();
-    }
-
     private void SelectNav(
         bool dashboard = false,
         bool transactions = false,
