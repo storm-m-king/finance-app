@@ -1,5 +1,4 @@
 using ExpenseTracker.Domain.Account;
-using ExpenseTracker.Domain.Transaction;
 
 namespace ExpenseTracker.Services.Contracts;
 
