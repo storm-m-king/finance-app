@@ -62,6 +62,12 @@ public interface IAccount
     CreditSignConvention CreditSignConvention { get; }
 
     /// <summary>
+    /// Import profile key used to select the CSV parsing rules for this account.
+    /// Examples: "amex.v1", "sofi.v1".
+    /// </summary>
+    public string ImportProfileKey { get; }
+
+    /// <summary>
     /// Renames the account.
     /// </summary>
     /// <param name="name">The new display name.</param>
@@ -97,6 +103,11 @@ public interface IAccount
     /// Thrown when the account is archived and mutation is disallowed by policy.
     /// </exception>
     void SetCreditSignConvention(CreditSignConvention convention);
+
+    /// <summary>
+    /// Updates the import profile key for this account.
+    /// </summary>
+    void SetImportProfileKey(string importProfileKey);
 
     /// <summary>
     /// Changes the logical account type.
