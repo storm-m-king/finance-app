@@ -120,8 +120,6 @@
                         BorderThickness="0,0,0,1"
                         Padding="18,14">
 
-                  <!-- IMPORTANT: Use the same ColumnDefinitions in header + rows -->
-                  <!-- Made Category wider so it cannot collapse into Amount -->
                   <Grid ColumnDefinitions="180,*,160,240"
                         ColumnSpacing="24">
 
@@ -151,54 +149,74 @@
                   </Grid>
                 </Border>
 
-                <!-- Rows -->
-                <ItemsControl Grid.Row="1"
-                              ItemsSource="{Binding PreviewRows}">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                      <Border BorderBrush="#1C2A40"
-                              BorderThickness="0,0,0,1"
-                              Padding="18,14">
+                <!-- Scrollable rows region (shows ~5 rows, then scrolls) -->
+                <Border Grid.Row="1"
+                        Padding="0"
+                        MaxHeight="320">
+                  <!-- ListBox gives you virtualization + scrolling -->
+                  <ListBox ItemsSource="{Binding PreviewRows}"
+                           Background="Transparent"
+                           BorderThickness="0"
+                           ScrollViewer.VerticalScrollBarVisibility="Auto"
+                           ScrollViewer.HorizontalScrollBarVisibility="Disabled">
 
-                        <!-- Match header exactly -->
-                        <Grid ColumnDefinitions="180,*,160,240"
-                              ColumnSpacing="24"
-                              VerticalAlignment="Center">
+                    <!-- remove default ListBox padding -->
+                    <ListBox.Styles>
+                      <Style Selector="ListBox">
+                        <Setter Property="Padding" Value="0"/>
+                      </Style>
+                      <Style Selector="ListBoxItem">
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                      </Style>
+                    </ListBox.Styles>
 
-                          <TextBlock Grid.Column="0"
-                                     Text="{Binding DateText}"
-                                     FontWeight="SemiBold" />
+                    <ListBox.ItemTemplate>
+                      <DataTemplate>
+                        <Border BorderBrush="#1C2A40"
+                                BorderThickness="0,0,0,1"
+                                Padding="18,14">
 
-                          <TextBlock Grid.Column="1"
-                                     Text="{Binding Description}"
-                                     TextTrimming="CharacterEllipsis"
-                                     FontWeight="SemiBold" />
+                          <Grid ColumnDefinitions="180,*,160,240"
+                                ColumnSpacing="24"
+                                VerticalAlignment="Center">
 
-                          <TextBlock Grid.Column="2"
-                                     Text="{Binding AmountText}"
-                                     HorizontalAlignment="Right"
-                                     Margin="0,0,8,0"
-                                     FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding DateText}"
+                                       FontWeight="SemiBold" />
 
-                          <!-- Category pill -->
-                          <Border Grid.Column="3"
-                                  Background="#121C30"
-                                  BorderBrush="#1C2A40"
-                                  BorderThickness="1"
-                                  CornerRadius="10"
-                                  Padding="10,6"
-                                  Margin="8,0,0,0"
-                                  HorizontalAlignment="Left">
-                            <TextBlock Text="{Binding Category}"
-                                       Classes="muted"
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding Description}"
+                                       TextTrimming="CharacterEllipsis"
+                                       FontWeight="SemiBold" />
+
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding AmountText}"
+                                       HorizontalAlignment="Right"
+                                       Margin="0,0,8,0"
                                        FontWeight="SemiBold"/>
-                          </Border>
 
-                        </Grid>
-                      </Border>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                            <!-- Category pill -->
+                            <Border Grid.Column="3"
+                                    Background="#121C30"
+                                    BorderBrush="#1C2A40"
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Padding="10,6"
+                                    Margin="8,0,0,0"
+                                    HorizontalAlignment="Left">
+                              <TextBlock Text="{Binding Category}"
+                                         Classes="muted"
+                                         FontWeight="SemiBold"/>
+                            </Border>
+
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </Border>
 
               </Grid>
             </Border>
@@ -244,23 +262,22 @@
                 ColumnSpacing="16"
                 HorizontalAlignment="Stretch">
 
-              <Button Grid.Column="0"
-                      Classes="secondaryWide"
-                      Command="{Binding Back}"
-                      HorizontalAlignment="Stretch"
-                      HorizontalContentAlignment="Center">
-                  Back
-              </Button>
+            <Button Grid.Column="0"
+                    Classes="secondaryWide"
+                    Command="{Binding Back}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center">
+              Back
+            </Button>
 
-              <Button Grid.Column="1"
-                      Classes="primaryWide"
-                      Command="{Binding ImportTransactions}"
-                      HorizontalAlignment="Stretch"
-                      HorizontalContentAlignment="Center">
-                  Import Transactions
-              </Button>
+            <Button Grid.Column="1"
+                    Classes="primaryWide"
+                    Command="{Binding ImportTransactions}"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Center">
+              Import Transactions
+            </Button>
           </Grid>
-
 
         </StackPanel>
 

@@ -29,6 +29,11 @@ public sealed class PreviewImportViewModel : ViewModelBase
         PreviewRows.Add(new PreviewRowViewModel(new DateTime(2026, 1, 25), "Chipotle", -14.89m, "Dining Out"));
         PreviewRows.Add(new PreviewRowViewModel(new DateTime(2026, 1, 24), "Paycheck", 3500.00m, "Income"));
         PreviewRows.Add(new PreviewRowViewModel(new DateTime(2026, 1, 23), "Peloton", -39.99m, "Fitness"));
+        PreviewRows.Add(new PreviewRowViewModel(new DateTime(2026, 1, 26), "Trader Joe's", -71.23m, "Groceries"));
+        PreviewRows.Add(new PreviewRowViewModel(new DateTime(2026, 1, 25), "Chipotle", -14.89m, "Dining Out"));
+        PreviewRows.Add(new PreviewRowViewModel(new DateTime(2026, 1, 24), "Paycheck", 3500.00m, "Income"));
+        PreviewRows.Add(new PreviewRowViewModel(new DateTime(2026, 1, 23), "Peloton", -39.99m, "Fitness"));
+        
 
         Back = ReactiveCommand.Create(_onBack);
         ImportTransactions = ReactiveCommand.Create(() =>
