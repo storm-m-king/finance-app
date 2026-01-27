@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Reactive;
 using ReactiveUI;
 using ExpenseTracker.UI.ViewModels;
@@ -11,6 +12,9 @@ namespace ExpenseTracker.UI.Shell;
 public sealed class MainWindowViewModel : ViewModelBase
 {
     private ViewModelBase _current = new DashboardViewModel();
+    public string CurrentMonthText =>
+        DateTime.Now.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+    
     public ViewModelBase Current
     {
         get => _current;

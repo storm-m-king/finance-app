@@ -142,7 +142,7 @@
                         <TextBlock Text="Current Month"
                                    Classes="muted"
                                    FontSize="12"/>
-                        <TextBlock Text="January 2026"
+                        <TextBlock Text="{Binding CurrentMonthText}"
                                    FontSize="20"
                                    FontWeight="Bold"/>
                     </StackPanel>
