@@ -25,4 +25,6 @@ public interface IAccountRepository
 
     /// <summary>Deletes an account by identifier (hard delete).</summary>
     Task DeleteAsync(Guid id, CancellationToken ct = default);
+
+    Task<Account?> GetByImportProfileKeyAsync(string importProfileKey, CancellationToken ct = default);
 }

@@ -24,6 +24,7 @@ public sealed class SqliteConnectionFactory : ISqliteConnectionFactory
         }.ToString();
 
         var conn = new SqliteConnection(cs);
+        conn.Open();
         return conn;
     }
 }

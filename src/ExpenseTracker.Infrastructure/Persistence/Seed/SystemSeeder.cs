@@ -37,5 +37,33 @@ public sealed class SystemSeeder
         });
                 
         _appLogger.Info($"Applied System Seeder. Rows effected={rowsEffected}");
+
+        int rowsAffected = conn.Execute("""
+                                        INSERT OR IGNORE INTO import_profiles
+                                            (profile_key, profile_name, expected_header_csv, date_header, description_header, amount_header)
+                                        VALUES
+                                            (@ProfileKey, @ProfileName, @ExpectedHeaderCsv, @DateHeader, @DescriptionHeader, @AmountHeader);
+                                        """,
+            new[]
+            {
+                new
+                {
+                    ProfileKey = "amex.v1",
+                    ProfileName = "American Express",
+                    ExpectedHeaderCsv = "Date,Description,Card Member,Account #,Amount",
+                    DateHeader = "Date",
+                    DescriptionHeader = "Description",
+                    AmountHeader = "Amount"
+                },
+                new
+                {
+                    ProfileKey = "sofi.v1",
+                    ProfileName = "SoFi",
+                    ExpectedHeaderCsv = "Date,Description,Type,Amount,Current balance,Status",
+                    DateHeader = "Date",
+                    DescriptionHeader = "Description",
+                    AmountHeader = "Amount"
+                }
+            });
     }
 }

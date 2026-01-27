@@ -1,3 +1,5 @@
+using ExpenseTracker.Domain.Account;
+using ExpenseTracker.Domain.ImportProfile;
 using ExpenseTracker.Services.Contracts;
 using ExpenseTracker.Services.DTOs;
 namespace ExpenseTracker.Services.Services.Import;
@@ -9,31 +11,46 @@ public sealed class ImportService : IImportService
 {
     private readonly IAppLogger _logger;
     private readonly IImportProfileResolver _profileResolver;
+    private readonly IImportProfileRepository _importProfileRepository;
+    private readonly IAccountRepository _accountRepository;
 
     /// <summary>
     /// Creates an import service.
     /// </summary>
-    public ImportService(IAppLogger applogger, IImportProfileResolver profileResolver)
+    public ImportService(
+        IAppLogger applogger, 
+        IImportProfileResolver profileResolver, 
+        IImportProfileRepository profileRepository, 
+        IAccountRepository accountRepository)
     {
         _logger = applogger ?? throw new ArgumentNullException(nameof(applogger));
         _profileResolver = profileResolver ?? throw new ArgumentNullException(nameof(profileResolver));
+        _importProfileRepository = profileRepository ?? throw new ArgumentNullException(nameof(profileRepository));
+        _accountRepository = accountRepository ?? throw new ArgumentNullException(nameof(accountRepository));
+    }
+
+    public async Task<IReadOnlyList<IImportProfile>> GetAllProfilesAsync(CancellationToken ct = default)
+    {
+        return await _importProfileRepository.GetAllAsync();
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<TransactionPreviewRow>> PreviewAsync(Guid accountId, string csvPath, CancellationToken ct = default)
+    public async Task<IReadOnlyList<TransactionPreviewRow>> PreviewAsync(string importProfileKey, string csvPath, CancellationToken ct = default)
     {
-        if (accountId == Guid.Empty) throw new ArgumentException("AccountId cannot be empty.", nameof(accountId));
+        if (string.IsNullOrEmpty(importProfileKey)) throw new ArgumentException("profileKey cannot be empty.", nameof(importProfileKey));
         if (string.IsNullOrWhiteSpace(csvPath)) throw new ArgumentException("CSV path cannot be null/empty.", nameof(csvPath));
-
+        Guid accountId = Guid.Empty;
         var result = await _logger.Trace("importservice.previewasync", async () =>
         {
-            _logger.Info($"[ImportService] Retrieving Preview for Profile with AccountId: {accountId} and Path: {csvPath}");
-            var profile = await _profileResolver.ResolveAsync(accountId, ct).ConfigureAwait(false);
-            _logger.Info($"[ImportService] Found Account profile with key {profile.ProfileKey}!");
-            return profile.Preview(accountId, csvPath, ct);
+            var profile = _profileResolver.Resolve(importProfileKey);
+            Account? account = await _accountRepository.GetByImportProfileKeyAsync(importProfileKey);
+            if(account == null) throw new ArgumentNullException(nameof(account));
+            accountId = account.Id;
+            _logger.Info($"[ImportService] Retrieving Preview for ImportProfile with AccountId: {accountId} and Path: {csvPath}");
+            return await profile.PreviewAsync(accountId, csvPath, ct);
         });
         
-        _logger.Info($"[ImportService] Retrieved Preview for Profile with AccountId: {accountId}. " +
+        _logger.Info($"[ImportService] Retrieved Preview for ImportProfile with AccountId: {accountId}. " +
                      $"Rows returned: {result.Count}");
         return result;
     }

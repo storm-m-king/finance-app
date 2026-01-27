@@ -59,3 +59,18 @@ CREATE TABLE IF NOT EXISTS transactions (
     
     UNIQUE (account_id, fingerprint)
 );
+
+-- =========================
+-- import_profiles
+-- =========================
+CREATE TABLE IF NOT EXISTS import_profiles (
+    profile_key         TEXT    NOT NULL PRIMARY KEY, -- "amex.v1", "sofi.v1", etc
+    profile_name        TEXT    NOT NULL,             -- "Amex", "SoFi"
+    expected_header_csv TEXT    NOT NULL,             -- CSV: "Date,Description,Card Member,Account #,Amount"
+    date_header         TEXT    NOT NULL,             -- "Date"
+    description_header  TEXT    NOT NULL,             -- "Description"
+    amount_header       TEXT    NOT NULL,              -- "Amount"
+    
+    normalized_description_csv  TEXT NOT NULL,             -- CSV list of headers: "Description,Card Member,Account #"
+    normalized_description_delimiter TEXT NOT NULL DEFAULT ','
+);
