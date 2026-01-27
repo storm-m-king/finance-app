@@ -5,8 +5,6 @@ using System.Data.Common;
 using Microsoft.Data.Sqlite;
 namespace ExpenseTracker.Infrastructure.Persistence.Repositories;
 
-
-
 /// <summary>
 /// SQLite-backed repository for <see cref="Account"/> persistence and queries.
 /// </summary>
@@ -40,6 +38,31 @@ public sealed class AccountRepository : IAccountRepository
              ";
 
         AddParam(cmd, "@id", id.ToString());
+
+        using var reader = await ExecuteReaderAsync(cmd, ct).ConfigureAwait(false);
+        if (!await reader.ReadAsync(ct).ConfigureAwait(false))
+            return null;
+
+        return MapAccount(reader);
+    }
+    
+    /// <inheritdoc />
+    public async Task<Account?> GetByImportProfileKeyAsync(string importProfileKey, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(importProfileKey)) throw new ArgumentException("profile key cannot be empty.", nameof(importProfileKey));
+
+        using var conn = _connectionFactory.CreateOpenConnection();
+        using var cmd = conn.CreateCommand();
+
+        cmd.CommandText = 
+            @"
+              SELECT id
+              FROM accounts
+              WHERE import_profile_key = @import_profile_key
+              LIMIT 1;
+             ";
+
+        AddParam(cmd, "@import_profile_key", importProfileKey.ToString());
 
         using var reader = await ExecuteReaderAsync(cmd, ct).ConfigureAwait(false);
         if (!await reader.ReadAsync(ct).ConfigureAwait(false))

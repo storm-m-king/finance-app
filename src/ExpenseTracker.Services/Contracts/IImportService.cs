@@ -1,3 +1,4 @@
+using ExpenseTracker.Domain.ImportProfile;
 using ExpenseTracker.Services.DTOs;
 namespace ExpenseTracker.Services.Contracts;
 
@@ -7,7 +8,18 @@ namespace ExpenseTracker.Services.Contracts;
 public interface IImportService
 {
     /// <summary>
-    /// Loads and maps CSV rows into a normalized preview form.
+    /// Get all profiles
     /// </summary>
-    Task<IReadOnlyList<TransactionPreviewRow>> PreviewAsync(Guid accountId, string csvPath, CancellationToken ct = default);
+    /// <returns>list of profiles</returns>
+    Task<IReadOnlyList<IImportProfile>> GetAllProfilesAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Parses csv and returns transaction preview
+    /// </summary>
+    /// <param name="profileKey"></param>
+    /// <param name="csvPath"></param>
+    /// <param name="ct"></param>
+    /// <returns></returns>
+    Task<IReadOnlyList<TransactionPreviewRow>> PreviewAsync(string profileKey, string csvPath,
+        CancellationToken ct = default);
 }

@@ -220,7 +220,7 @@
               <StackPanel Spacing="10"
                           HorizontalAlignment="Stretch">
 
-                <TextBlock Text="Select Mapping Profile"
+                <TextBlock Text="Select Mapping ImportProfile"
                            FontWeight="SemiBold"/>
 
                 <ComboBox ItemsSource="{Binding MappingProfiles}"

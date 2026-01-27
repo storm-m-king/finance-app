@@ -8,5 +8,5 @@ public interface IImportProfileResolver
     /// <summary>
     /// Resolves a CSV import profile for the given account.
     /// </summary>
-    Task<ICsvImportProfile> ResolveAsync(Guid accountId, CancellationToken ct = default);
+    ICsvImportProfile Resolve(string profileKey);
 }

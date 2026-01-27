@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.ReactiveUI;
+using ExpenseTracker.Domain.ImportProfile;
 using ExpenseTracker.Infrastructure.Configuration;
 using ExpenseTracker.Infrastructure.Logging;
 using ExpenseTracker.Infrastructure.Persistence;
@@ -38,7 +39,7 @@ internal static class Program
     /// </summary>
     /// <param name="args">Command-line arguments.</param>
     [STAThread]
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         // Create and configure the dependency injection container.
         var services = new ServiceCollection();
@@ -66,13 +67,10 @@ internal static class Program
         
         // Initialize the ImportProfileRegistry with all known import profiles.
         var fingerprintService = provider.GetRequiredService<IFingerprintService>();
-        IEnumerable<ICsvImportProfile> importProfiles = new List<ICsvImportProfile>()
-        {
-            new AmexCsvProfile(fingerprintService),
-            new SofiCsvProfile(fingerprintService),
-        };
+        var importProfileRepository = provider.GetRequiredService<IImportProfileRepository>();
+        var profiles = await importProfileRepository.GetAllAsync();
         provider.GetRequiredService<IImportProfileRegistry>()
-            .InitializeRegistry(importProfiles);
+            .InitializeRegistry(profiles);
 
         // Start the Avalonia desktop application.
         // This call blocks until the application exits.
@@ -100,6 +98,7 @@ internal static class Program
 
         // Repositories
         services.AddSingleton<IAccountRepository, AccountRepository>();
+        services.AddSingleton<IImportProfileRepository, ImportProfileRepository>();
         
 
         // Short-lived startup helpers used during application initialization.
