@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     type                  INTEGER NOT NULL,  -- Checking|Credit
     is_archived           INTEGER NOT NULL,
     credit_sign_convention INTEGER NULL      -- PositiveIsCharge|PositiveIsPayment (credit only)
+    import_profile_key     TEXT    NOT NULL   -- "amex.v1", "sofi.v1", etc
 );
 
 -- =========================
