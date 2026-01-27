@@ -38,6 +38,12 @@ public sealed class Account : IAccount
             CreditSignConvention = value;
         }
     }
+    
+    /// <summary>
+    /// Import profile key used to select the CSV parsing rules for this account.
+    /// Examples: "amex.v1", "sofi.v1".
+    /// </summary>
+    public string ImportProfileKey { get; private set; } = string.Empty;
 
     // Private constructor for ORM/serialization.
     private Account() { }
@@ -48,7 +54,8 @@ public sealed class Account : IAccount
         string name,
         AccountType type,
         bool isArchived,
-        CreditSignConvention creditSignConvention
+        CreditSignConvention creditSignConvention,
+        string importProfileKey
     )
     {
         Id = id == Guid.Empty ? throw new ArgumentException("Id cannot be empty.", nameof(id)) : id;
@@ -56,6 +63,7 @@ public sealed class Account : IAccount
         Type = type;
         IsArchived = isArchived;
         CreditSignConvention = creditSignConvention;
+        ImportProfileKey = ValidateRequiredKey(importProfileKey, nameof(importProfileKey));
     }
 
     /// <summary>
@@ -63,13 +71,15 @@ public sealed class Account : IAccount
     /// </summary>
     /// <param name="name">Display name for the account.</param>
     /// <param name="type">Account type.</param>
-    /// <param name="creditSignConvention">Optional sign convention for imports.</param>
+    /// <param name="creditSignConvention">Sign convention for imports.</param>
+    /// <param name="importProfileKey">Import profile key used to select the CSV parsing rules for this account.</param>
     /// <param name="id">Optional ID; if not provided, a new GUID is generated.</param>
     public static Account Create
     (
         string name,
         AccountType type,
         CreditSignConvention creditSignConvention,
+        string importProfileKey,
         Guid? id = null
     )
     {
@@ -79,8 +89,18 @@ public sealed class Account : IAccount
             name,
             type,
             isArchived: false,
-            creditSignConvention
+            creditSignConvention,
+            importProfileKey
         );
+    }
+    
+    /// <summary>
+    /// Updates the import profile key for this account.
+    /// </summary>
+    public void SetImportProfileKey(string importProfileKey)
+    {
+        EnsureNotArchivedForMutation();
+        ImportProfileKey = ValidateRequiredKey(importProfileKey, nameof(importProfileKey));
     }
 
     /// <summary>
@@ -143,5 +163,13 @@ public sealed class Account : IAccount
         // Policy choice: if you want archived accounts to still be editable, remove this guard.
         if (IsArchived)
             throw new InvalidOperationException("Archived accounts cannot be modified.");
+    }
+    
+    private static string ValidateRequiredKey(string value, string paramName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            throw new ArgumentException("ImportProfileKey cannot be null, empty, or whitespace.", paramName);
+
+        return value.Trim();
     }
 }

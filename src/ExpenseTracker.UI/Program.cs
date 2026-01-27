@@ -3,8 +3,12 @@ using Avalonia.ReactiveUI;
 using ExpenseTracker.Infrastructure.Configuration;
 using ExpenseTracker.Infrastructure.Logging;
 using ExpenseTracker.Infrastructure.Persistence;
+using ExpenseTracker.Infrastructure.Persistence.Repositories;
 using ExpenseTracker.Infrastructure.Persistence.Seed;
 using ExpenseTracker.Services.Contracts;
+using ExpenseTracker.Services.Services.FingerPrint;
+using ExpenseTracker.Services.Services.Import;
+using ExpenseTracker.Services.Services.Import.Profiles;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ExpenseTracker.UI;
@@ -59,6 +63,16 @@ internal static class Program
             var seeder = provider.GetRequiredService<SystemSeeder>();
             seeder.Seed();
         });
+        
+        // Initialize the ImportProfileRegistry with all known import profiles.
+        var fingerprintService = provider.GetRequiredService<IFingerprintService>();
+        IEnumerable<ICsvImportProfile> importProfiles = new List<ICsvImportProfile>()
+        {
+            new AmexCsvProfile(fingerprintService),
+            new SofiCsvProfile(fingerprintService),
+        };
+        provider.GetRequiredService<IImportProfileRegistry>()
+            .InitializeRegistry(importProfiles);
 
         // Start the Avalonia desktop application.
         // This call blocks until the application exits.
@@ -79,11 +93,19 @@ internal static class Program
         // Core infrastructure services shared for the lifetime of the application.
         services.AddSingleton<IAppLogger, AppLogger>();
         services.AddSingleton<ISqliteConnectionFactory, SqliteConnectionFactory>();
+        services.AddSingleton<IImportService, ImportService>();
+        services.AddSingleton<IFingerprintService, Sha256FingerprintService>();
+        services.AddSingleton<IImportProfileResolver, ImportProfileResolver>();
+        services.AddSingleton<IImportProfileRegistry, ImportProfileRegistry>();
+
+        // Repositories
+        services.AddSingleton<IAccountRepository, AccountRepository>();
+        
 
         // Short-lived startup helpers used during application initialization.
         services.AddTransient<DbInitializer>();
         services.AddTransient<SystemSeeder>();
-
+        
         // Enable validation to fail fast on DI misconfiguration.
         var options = new ServiceProviderOptions
         {
