@@ -3,6 +3,8 @@ using System.Reactive;
 using ReactiveUI;
 using ExpenseTracker.UI.ViewModels;
 using ExpenseTracker.UI.Features.Dashboard;
+using ExpenseTracker.UI.Features.Import;
+using ExpenseTracker.UI.Features.Import.Preview;
 
 namespace ExpenseTracker.UI.Shell;
 
@@ -83,7 +85,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         GoImport = ReactiveCommand.Create(() =>
         {
             SelectNav(import: true);
-            Current = new PlaceholderViewModel("Import");
+            ShowImportUpload(); // always start at step 1 when clicking Import
         });
 
         GoCategories = ReactiveCommand.Create(() =>
@@ -109,6 +111,44 @@ public sealed class MainWindowViewModel : ViewModelBase
         Current = new DashboardViewModel();
     }
 
+    private void ShowImportUpload()
+    {
+        // Keep Import highlighted in the sidebar
+        SelectNav(import: true);
+
+        // Pass callback so ImportViewModel can advance to preview.
+        Current = new ImportViewModel(
+            onContinueToPreview: (selectedFilePath, selectedProfileName) =>
+            {
+                ShowImportPreview(selectedFilePath, selectedProfileName);
+            });
+    }
+
+    private void ShowImportPreview(string selectedFilePathOrUri, string mappingProfile)
+    {
+        // Keep Import highlighted in the sidebar
+        SelectNav(import: true);
+
+        Current = new PreviewImportViewModel(
+            selectedPath: selectedFilePathOrUri,
+            mappingProfile: mappingProfile,
+            onBack: () => ShowImportUpload(),
+            onImport: importedCount =>
+            {
+                // Later: step 3 screen
+                Current = new Features.Import.Complete.ImportCompleteViewModel(
+                    successfulImportRowCount: importedCount,
+                    importMore: GoImport,
+                    viewTransactions: GoTransactions
+                );
+            });
+    }
+
+    private void ShowTransactions()
+    {
+        GoTransactions.Execute();
+    }
+
     private void SelectNav(
         bool dashboard = false,
         bool transactions = false,
@@ -117,7 +157,6 @@ public sealed class MainWindowViewModel : ViewModelBase
         bool rules = false,
         bool accounts = false)
     {
-        // hard reset everything
         IsDashboardSelected = false;
         IsTransactionsSelected = false;
         IsImportSelected = false;
@@ -125,7 +164,6 @@ public sealed class MainWindowViewModel : ViewModelBase
         IsRulesSelected = false;
         IsAccountsSelected = false;
 
-        // set the one selected
         IsDashboardSelected = dashboard;
         IsTransactionsSelected = transactions;
         IsImportSelected = import;

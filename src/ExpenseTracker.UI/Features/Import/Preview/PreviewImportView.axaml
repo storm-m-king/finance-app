@@ -1,0 +1,270 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
+             xmlns:shapes="clr-namespace:Avalonia.Controls.Shapes;assembly=Avalonia.Controls"
+             x:Class="ExpenseTracker.UI.Features.Import.Preview.PreviewImportView">
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Disabled">
+
+    <Border Padding="0,0,12,24">
+      <Grid RowDefinitions="Auto,Auto,Auto,Auto"
+            RowSpacing="18">
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="6">
+          <TextBlock Text="Import Transactions"
+                     FontSize="32"
+                     FontWeight="Bold" />
+          <TextBlock Text="Import transactions from CSV files"
+                     Classes="muted" />
+        </StackPanel>
+
+        <!-- Stepper card (Step 1 complete, Step 2 active) -->
+        <Border Grid.Row="1" Classes="card">
+          <Grid ColumnDefinitions="Auto,*,Auto,*,Auto"
+                VerticalAlignment="Center"
+                Margin="6">
+
+            <!-- 1 (complete) -->
+            <StackPanel Grid.Column="0" Spacing="8">
+              <Border Width="36" Height="36"
+                      CornerRadius="18"
+                      BorderBrush="#1F7A4A"
+                      BorderThickness="2"
+                      Background="#0E2A1C"
+                      HorizontalAlignment="Left">
+                <TextBlock Text="✓"
+                           Foreground="#31D07C"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontWeight="Bold"/>
+              </Border>
+              <TextBlock Text="Upload File"
+                         Classes="muted"
+                         FontWeight="SemiBold"/>
+            </StackPanel>
+
+            <Border Grid.Column="1"
+                    Height="2"
+                    Background="#223A66"
+                    VerticalAlignment="Center"
+                    Margin="18,0"/>
+
+            <!-- 2 (active) -->
+            <StackPanel Grid.Column="2" Spacing="8">
+              <Border Width="36" Height="36"
+                      CornerRadius="18"
+                      BorderBrush="{DynamicResource Blue}"
+                      BorderThickness="2"
+                      Background="Transparent"
+                      HorizontalAlignment="Center">
+                <TextBlock Text="2"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontWeight="Bold"/>
+              </Border>
+              <TextBlock Text="Preview &amp; Map"
+                         HorizontalAlignment="Center"
+                         FontWeight="SemiBold"/>
+            </StackPanel>
+
+            <Border Grid.Column="3"
+                    Height="2"
+                    Background="#223A66"
+                    VerticalAlignment="Center"
+                    Margin="18,0"/>
+
+            <!-- 3 (inactive) -->
+            <StackPanel Grid.Column="4" Spacing="8" Opacity="0.7">
+              <Border Width="36" Height="36"
+                      CornerRadius="18"
+                      BorderBrush="#3A4A66"
+                      BorderThickness="2"
+                      Background="Transparent"
+                      HorizontalAlignment="Right">
+                <TextBlock Text="3"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontWeight="Bold"/>
+              </Border>
+              <TextBlock Text="Complete"
+                         HorizontalAlignment="Right"
+                         FontWeight="SemiBold"/>
+            </StackPanel>
+
+          </Grid>
+        </Border>
+
+        <!-- Preview table card -->
+        <Border Grid.Row="2" Classes="card">
+          <StackPanel Spacing="14">
+
+            <TextBlock Text="Preview Import"
+                       FontSize="22"
+                       FontWeight="Bold" />
+
+            <!-- Table shell -->
+            <Border Background="#0B1220"
+                    BorderBrush="#1C2A40"
+                    BorderThickness="1"
+                    CornerRadius="14"
+                    Padding="0">
+
+              <Grid RowDefinitions="Auto,*">
+
+                <!-- Header row -->
+                <Border Grid.Row="0"
+                        Background="#101C33"
+                        BorderBrush="#1C2A40"
+                        BorderThickness="0,0,0,1"
+                        Padding="18,14">
+
+                  <!-- IMPORTANT: Use the same ColumnDefinitions in header + rows -->
+                  <!-- Made Category wider so it cannot collapse into Amount -->
+                  <Grid ColumnDefinitions="180,*,160,240"
+                        ColumnSpacing="24">
+
+                    <TextBlock Grid.Column="0"
+                               Text="Date"
+                               Classes="muted"
+                               FontWeight="SemiBold" />
+
+                    <TextBlock Grid.Column="1"
+                               Text="Description"
+                               Classes="muted"
+                               FontWeight="SemiBold" />
+
+                    <TextBlock Grid.Column="2"
+                               Text="Amount"
+                               Classes="muted"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Right"
+                               Margin="0,0,8,0" />
+
+                    <TextBlock Grid.Column="3"
+                               Text="Category"
+                               Classes="muted"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Left"
+                               Margin="8,0,0,0" />
+                  </Grid>
+                </Border>
+
+                <!-- Rows -->
+                <ItemsControl Grid.Row="1"
+                              ItemsSource="{Binding PreviewRows}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border BorderBrush="#1C2A40"
+                              BorderThickness="0,0,0,1"
+                              Padding="18,14">
+
+                        <!-- Match header exactly -->
+                        <Grid ColumnDefinitions="180,*,160,240"
+                              ColumnSpacing="24"
+                              VerticalAlignment="Center">
+
+                          <TextBlock Grid.Column="0"
+                                     Text="{Binding DateText}"
+                                     FontWeight="SemiBold" />
+
+                          <TextBlock Grid.Column="1"
+                                     Text="{Binding Description}"
+                                     TextTrimming="CharacterEllipsis"
+                                     FontWeight="SemiBold" />
+
+                          <TextBlock Grid.Column="2"
+                                     Text="{Binding AmountText}"
+                                     HorizontalAlignment="Right"
+                                     Margin="0,0,8,0"
+                                     FontWeight="SemiBold"/>
+
+                          <!-- Category pill -->
+                          <Border Grid.Column="3"
+                                  Background="#121C30"
+                                  BorderBrush="#1C2A40"
+                                  BorderThickness="1"
+                                  CornerRadius="10"
+                                  Padding="10,6"
+                                  Margin="8,0,0,0"
+                                  HorizontalAlignment="Left">
+                            <TextBlock Text="{Binding Category}"
+                                       Classes="muted"
+                                       FontWeight="SemiBold"/>
+                          </Border>
+
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+              </Grid>
+            </Border>
+
+          </StackPanel>
+        </Border>
+
+        <!-- Summary + bottom buttons -->
+        <StackPanel Grid.Row="3" Spacing="16">
+
+          <!-- Import summary card -->
+          <Border Background="#12224A"
+                  BorderBrush="#1C2A40"
+                  BorderThickness="1"
+                  CornerRadius="16"
+                  Padding="18,14">
+            <Grid ColumnDefinitions="Auto,*"
+                  ColumnSpacing="12"
+                  VerticalAlignment="Center">
+
+              <Border Width="28" Height="28"
+                      CornerRadius="14"
+                      Background="#0B2A5A"
+                      VerticalAlignment="Center">
+                <TextBlock Text="i"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontWeight="Bold"/>
+              </Border>
+
+              <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Text="Import Summary"
+                           FontWeight="Bold" />
+                <TextBlock Text="{Binding SummaryText}"
+                           Classes="muted" />
+              </StackPanel>
+
+            </Grid>
+          </Border>
+
+          <!-- Buttons row -->
+          <Grid ColumnDefinitions="*,*"
+                ColumnSpacing="16"
+                HorizontalAlignment="Stretch">
+
+              <Button Grid.Column="0"
+                      Classes="secondaryWide"
+                      Command="{Binding Back}"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center">
+                  Back
+              </Button>
+
+              <Button Grid.Column="1"
+                      Classes="primaryWide"
+                      Command="{Binding ImportTransactions}"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center">
+                  Import Transactions
+              </Button>
+          </Grid>
+
+
+        </StackPanel>
+
+      </Grid>
+    </Border>
+  </ScrollViewer>
+</UserControl>

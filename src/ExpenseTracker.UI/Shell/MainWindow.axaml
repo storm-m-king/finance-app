@@ -3,6 +3,9 @@
         xmlns:vm="using:ExpenseTracker.UI.Shell"
         xmlns:dash="using:ExpenseTracker.UI.Features.Dashboard"
         xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
+        xmlns:imp="using:ExpenseTracker.UI.Features.Import"
+        xmlns:impPrev="using:ExpenseTracker.UI.Features.Import.Preview"
+        xmlns:importComplete="using:ExpenseTracker.UI.Features.Import.Complete"
         x:Class="ExpenseTracker.UI.Shell.MainWindow"
         Width="1200" Height="750"
         Title="Expense Tracker">
@@ -20,6 +23,18 @@
             <Border Padding="24">
                 <TextBlock FontSize="28" Text="{Binding Title}" />
             </Border>
+        </DataTemplate>
+        
+        <DataTemplate DataType="imp:ImportViewModel">
+            <imp:ImportView/>
+        </DataTemplate>
+        
+        <DataTemplate DataType="impPrev:PreviewImportViewModel">
+            <impPrev:PreviewImportView/>
+        </DataTemplate>
+        
+        <DataTemplate DataType="importComplete:ImportCompleteViewModel">
+            <importComplete:ImportCompleteView/>
         </DataTemplate>
     </Window.DataTemplates>
 
