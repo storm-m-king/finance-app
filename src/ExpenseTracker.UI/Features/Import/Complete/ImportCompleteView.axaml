@@ -1,0 +1,171 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
+             x:Class="ExpenseTracker.UI.Features.Import.Complete.ImportCompleteView">
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Disabled">
+
+    <Border Padding="0,0,12,24">
+      <Grid RowDefinitions="Auto,Auto,Auto"
+            RowSpacing="18">
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="6">
+          <TextBlock Text="Import Transactions"
+                     FontSize="32"
+                     FontWeight="Bold" />
+          <TextBlock Text="Import transactions from CSV files"
+                     Classes="muted" />
+        </StackPanel>
+
+        <!-- Stepper card (Step 1 + 2 complete, Step 3 active) -->
+        <Border Grid.Row="1" Classes="card">
+          <Grid ColumnDefinitions="Auto,*,Auto,*,Auto"
+                VerticalAlignment="Center"
+                Margin="6">
+
+            <!-- 1 complete -->
+            <StackPanel Grid.Column="0" Spacing="8">
+              <Border Width="36" Height="36"
+                      CornerRadius="18"
+                      BorderBrush="#1F7A4A"
+                      BorderThickness="2"
+                      Background="#0E2A1C"
+                      HorizontalAlignment="Left">
+                <TextBlock Text="✓"
+                           Foreground="#31D07C"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontWeight="Bold"/>
+              </Border>
+              <TextBlock Text="Upload File"
+                         Classes="muted"
+                         FontWeight="SemiBold"/>
+            </StackPanel>
+
+            <Border Grid.Column="1"
+                    Height="2"
+                    Background="#223A66"
+                    VerticalAlignment="Center"
+                    Margin="18,0"/>
+
+            <!-- 2 complete -->
+            <StackPanel Grid.Column="2" Spacing="8">
+              <Border Width="36" Height="36"
+                      CornerRadius="18"
+                      BorderBrush="#1F7A4A"
+                      BorderThickness="2"
+                      Background="#0E2A1C"
+                      HorizontalAlignment="Center">
+                <TextBlock Text="✓"
+                           Foreground="#31D07C"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontWeight="Bold"/>
+              </Border>
+              <TextBlock Text="Preview &amp; Map"
+                         Classes="muted"
+                         HorizontalAlignment="Center"
+                         FontWeight="SemiBold"/>
+            </StackPanel>
+
+            <Border Grid.Column="3"
+                    Height="2"
+                    Background="#223A66"
+                    VerticalAlignment="Center"
+                    Margin="18,0"/>
+
+            <!-- 3 active -->
+            <StackPanel Grid.Column="4" Spacing="8">
+              <Border Width="36" Height="36"
+                      CornerRadius="18"
+                      BorderBrush="{DynamicResource Blue}"
+                      BorderThickness="2"
+                      Background="Transparent"
+                      HorizontalAlignment="Right">
+                <TextBlock Text="3"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontWeight="Bold"/>
+              </Border>
+              <TextBlock Text="Complete"
+                         HorizontalAlignment="Right"
+                         FontWeight="SemiBold"/>
+            </StackPanel>
+
+          </Grid>
+        </Border>
+
+        <!-- Main card -->
+        <Border Grid.Row="2" Classes="card">
+          <Grid RowDefinitions="*,Auto"
+                RowSpacing="18">
+
+            <!-- Center content -->
+            <StackPanel Grid.Row="0"
+                        Spacing="14"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        MaxWidth="720">
+
+              <!-- Big check -->
+              <Border Width="92" Height="92"
+                      CornerRadius="46"
+                      Background="#0E2A1C"
+                      BorderBrush="#1F7A4A"
+                      BorderThickness="1"
+                      HorizontalAlignment="Center">
+
+                <!-- Use your own SVG if you have it; otherwise this will just be empty if missing -->
+                <svg:Svg Width="52" Height="52"
+                         Path="/Assets/Icons/circle-check.svg"
+                         Stretch="Uniform"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"/>
+              </Border>
+
+              <TextBlock Text="Import Complete!"
+                         FontSize="28"
+                         FontWeight="Bold"
+                         HorizontalAlignment="Center"/>
+
+              <TextBlock Text="{Binding CompleteMessage}"
+                         Classes="muted"
+                         TextAlignment="Center"
+                         FontSize="14"
+                         MaxWidth="640"
+                         HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Buttons (50% / 50%) -->
+            <Grid Grid.Row="1"
+                  ColumnDefinitions="*,*"
+                  ColumnSpacing="14"
+                  HorizontalAlignment="Center"
+                  Width="520">
+
+              <Button Grid.Column="0"
+                      Classes="secondaryWide"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center"
+                      Command="{Binding ImportMore}">
+                Import More
+              </Button>
+
+              <Button Grid.Column="1"
+                      Classes="primaryWide"
+                      HorizontalAlignment="Stretch"
+                      HorizontalContentAlignment="Center"
+                      Command="{Binding ViewTransactions}">
+                View Transactions
+              </Button>
+            </Grid>
+
+          </Grid>
+        </Border>
+
+      </Grid>
+    </Border>
+  </ScrollViewer>
+</UserControl>
