@@ -4,17 +4,24 @@ using System.Reactive;
 using ReactiveUI;
 using ExpenseTracker.UI.ViewModels;
 using ExpenseTracker.UI.Features.Dashboard;
-using ExpenseTracker.UI.Features.Import;
-using ExpenseTracker.UI.Features.Import.Preview;
+using ExpenseTracker.UI.Features.Import.ImportView;
+using ExpenseTracker.UI.Features.Import.PreviewView;
 
 namespace ExpenseTracker.UI.Shell;
 
 public sealed class MainWindowViewModel : ViewModelBase
 {
+    // ✅ Factory for step 1 (ImportUpload) VM (DI gives it IImportService, etc.)
+    private readonly Func<Action<string, string>, ImportViewModel> _importVmFactory;
+
+    // ✅ Factory for step 2 (Preview) VM (DI gives it ImportService, repos, etc.)
+    private readonly Func<string, string, Action, Action<int>, PreviewImportViewModel> _previewVmFactory;
+
     private ViewModelBase _current = new DashboardViewModel();
+
     public string CurrentMonthText =>
         DateTime.Now.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
-    
+
     public ViewModelBase Current
     {
         get => _current;
@@ -72,8 +79,14 @@ public sealed class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> GoRules { get; }
     public ReactiveCommand<Unit, Unit> GoAccounts { get; }
 
-    public MainWindowViewModel()
+    // ✅ DI constructor
+    public MainWindowViewModel(
+        Func<Action<string, string>, ImportViewModel> importVmFactory,
+        Func<string, string, Action, Action<int>, PreviewImportViewModel> previewVmFactory)
     {
+        _importVmFactory = importVmFactory;
+        _previewVmFactory = previewVmFactory;
+
         GoDashboard = ReactiveCommand.Create(() =>
         {
             SelectNav(dashboard: true);
@@ -120,32 +133,33 @@ public sealed class MainWindowViewModel : ViewModelBase
         // Keep Import highlighted in the sidebar
         SelectNav(import: true);
 
-        // Pass callback so ImportViewModel can advance to preview.
-        Current = new ImportViewModel(
-            onContinueToPreview: (selectedFilePath, selectedProfileName) =>
-            {
-                ShowImportPreview(selectedFilePath, selectedProfileName);
-            });
+        // ✅ Create Import VM via DI-backed factory
+        Current = _importVmFactory((selectedFilePath, selectedProfileKey) =>
+        {
+            ShowImportPreview(selectedFilePath, selectedProfileKey);
+        });
     }
 
-    private void ShowImportPreview(string selectedFilePathOrUri, string mappingProfile)
+    private void ShowImportPreview(string selectedFilePathOrUri, string mappingProfileKey)
     {
         // Keep Import highlighted in the sidebar
         SelectNav(import: true);
 
-        Current = new PreviewImportViewModel(
-            selectedFilePath: selectedFilePathOrUri,
-            mappingProfile: mappingProfile,
-            onBack: () => ShowImportUpload(),
-            onImport: importedCount =>
-            {
-                // Later: step 3 screen
-                Current = new Features.Import.Complete.ImportCompleteViewModel(
-                    successfulImportRowCount: importedCount,
-                    importMore: GoImport,
-                    viewTransactions: GoTransactions
-                );
-            });
+        // Callbacks for the preview step
+        Action onBack = () => ShowImportUpload();
+
+        Action<int> onImport = importedCount =>
+        {
+            // Step 3 screen
+            Current = new Features.Import.CompleteView.ImportCompleteViewModel(
+                successfulImportRowCount: importedCount,
+                importMore: GoImport,
+                viewTransactions: GoTransactions
+            );
+        };
+
+        // ✅ Create preview VM via DI-backed factory
+        Current = _previewVmFactory(selectedFilePathOrUri, mappingProfileKey, onBack, onImport);
     }
 
     private void SelectNav(

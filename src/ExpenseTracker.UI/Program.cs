@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.ReactiveUI;
-using ExpenseTracker.Domain.ImportProfile;
 using ExpenseTracker.Infrastructure.Configuration;
 using ExpenseTracker.Infrastructure.Logging;
 using ExpenseTracker.Infrastructure.Persistence;
@@ -10,6 +9,9 @@ using ExpenseTracker.Services.Contracts;
 using ExpenseTracker.Services.Services.FingerPrint;
 using ExpenseTracker.Services.Services.Import;
 using ExpenseTracker.Services.Services.Import.Profiles;
+using ExpenseTracker.UI.Features.Import.ImportView;
+using ExpenseTracker.UI.Features.Import.PreviewView;
+using ExpenseTracker.UI.Shell;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ExpenseTracker.UI;
@@ -21,6 +23,8 @@ namespace ExpenseTracker.UI;
 /// </summary>
 internal static class Program
 {
+    public static IServiceProvider Services { get; private set; } = null!;
+
     /// <summary>
     /// Configures the Avalonia application builder.
     /// This method is required by Avalonia tooling and the visual designer.
@@ -43,10 +47,10 @@ internal static class Program
     {
         // Create and configure the dependency injection container.
         var services = new ServiceCollection();
-        using var provider = ConfigureServices(services);
+        Services = ConfigureServices(services);
 
         // Initialize logging as early as possible so all startup activity is captured.
-        var appLogger = provider.GetRequiredService<IAppLogger>();
+        var appLogger = Services.GetRequiredService<IAppLogger>();
         appLogger.Initialize();
         appLogger.Info("===================== Application started =====================");
         appLogger.Info(AppPaths.GetConfigurationSummary());
@@ -54,22 +58,21 @@ internal static class Program
         // Ensure the local SQLite database schema exists.
         appLogger.Trace("db.schema.apply", () =>
         {
-            var initializer = provider.GetRequiredService<DbInitializer>();
+            var initializer = Services.GetRequiredService<DbInitializer>();
             initializer.Initialize();
         });
 
         // Seed the database with default/system data.
         appLogger.Trace("db.seed", () =>
         {
-            var seeder = provider.GetRequiredService<SystemSeeder>();
+            var seeder = Services.GetRequiredService<SystemSeeder>();
             seeder.Seed();
         });
         
         // Initialize the ImportProfileRegistry with all known import profiles.
-        var fingerprintService = provider.GetRequiredService<IFingerprintService>();
-        var importProfileRepository = provider.GetRequiredService<IImportProfileRepository>();
+        var importProfileRepository = Services.GetRequiredService<IImportProfileRepository>();
         var profiles = await importProfileRepository.GetAllAsync();
-        provider.GetRequiredService<IImportProfileRegistry>()
+        Services.GetRequiredService<IImportProfileRegistry>()
             .InitializeRegistry(profiles);
 
         // Start the Avalonia desktop application.
@@ -91,11 +94,13 @@ internal static class Program
         // Core infrastructure services shared for the lifetime of the application.
         services.AddSingleton<IAppLogger, AppLogger>();
         services.AddSingleton<ISqliteConnectionFactory, SqliteConnectionFactory>();
-        services.AddSingleton<IImportService, ImportService>();
-        services.AddSingleton<IFingerprintService, Sha256FingerprintService>();
         services.AddSingleton<IImportProfileResolver, ImportProfileResolver>();
         services.AddSingleton<IImportProfileRegistry, ImportProfileRegistry>();
 
+        // Services 
+        services.AddSingleton<IImportService, ImportService>();
+        services.AddSingleton<IFingerprintService, Sha256FingerprintService>();
+        
         // Repositories
         services.AddSingleton<IAccountRepository, AccountRepository>();
         services.AddSingleton<IImportProfileRepository, ImportProfileRepository>();
@@ -104,6 +109,41 @@ internal static class Program
         // Short-lived startup helpers used during application initialization.
         services.AddTransient<DbInitializer>();
         services.AddTransient<SystemSeeder>();
+        
+        // Frontend View Models
+        services.AddTransient<MainWindow>();
+        
+        services.AddTransient<Func<Action<string, string>, ImportViewModel>>(sp =>
+            onContinue => new ImportViewModel(
+                importService: sp.GetRequiredService<IImportService>(),
+                onContinueToPreview: onContinue));
+
+        services.AddTransient<Func<string, string, Action, Action<int>, PreviewImportViewModel>>(sp =>
+            (path, profileKey, onBack, onImport) =>
+                new PreviewImportViewModel(
+                    importService: sp.GetRequiredService<IImportService>(),
+                    selectedFilePath: path,
+                    mappingProfile: profileKey,
+                    onBack: onBack,
+                    onImport: onImport));
+        
+        services.AddTransient<MainWindowViewModel>();
+        
+        services.AddTransient<Func<Action<string, string>, ImportViewModel>>(sp => onContinue =>
+            new ImportViewModel(
+                importService: sp.GetRequiredService<IImportService>(),
+                onContinueToPreview: onContinue
+            )
+        );
+        
+        services.AddTransient<Func<string, string, Action, Action<int>, PreviewImportViewModel>>(sp =>
+            (path, profile, onBack, onImport) => 
+                new PreviewImportViewModel(
+                    sp.GetRequiredService<IImportService>(),
+                    path,
+                    profile,
+                    onBack,
+                    onImport));
         
         // Enable validation to fail fast on DI misconfiguration.
         var options = new ServiceProviderOptions

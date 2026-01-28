@@ -22,20 +22,21 @@ public sealed class Account : IAccount
     /// </summary>
     public bool IsArchived { get; private set; }
 
+    private CreditSignConvention _creditSignConvention;
     /// <summary>
     /// Optional convention describing how a provider represents credits/debits for this account.
     /// Useful for imports where the sign meaning varies by institution.
     /// </summary>
     public CreditSignConvention CreditSignConvention
     {
-        get => CreditSignConvention;
+        get => _creditSignConvention;
         private set
         {
             if (value == CreditSignConvention.Unknown)
             {
                 throw new ArgumentException("CreditSignConvention cannot be unknown", nameof(CreditSignConvention));
             }
-            CreditSignConvention = value;
+            _creditSignConvention = value;
         }
     }
     

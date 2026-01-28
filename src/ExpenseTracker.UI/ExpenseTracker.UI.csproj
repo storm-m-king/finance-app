@@ -17,6 +17,7 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
     </ItemGroup>
     <ItemGroup>
+      <AdditionalFiles Include="Features\Import\ImportView\ImportView.axaml" />
       <AdditionalFiles Include="ViewModels\MainWindow.axaml" />
     </ItemGroup>
     <ItemGroup>
@@ -25,6 +26,10 @@
     <ItemGroup>
       <Compile Update="Shell\MainWindow.axaml.cs">
         <DependentUpon>MainWindow.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
+      <Compile Update="Features\Import\ImportView\ImportView.axaml.cs">
+        <DependentUpon>ImportView.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>
     </ItemGroup>

@@ -56,13 +56,13 @@ public sealed class AccountRepository : IAccountRepository
 
         cmd.CommandText = 
             @"
-              SELECT id
+              SELECT id, name, type, is_archived, credit_sign_convention, import_profile_key
               FROM accounts
               WHERE import_profile_key = @import_profile_key
               LIMIT 1;
              ";
 
-        AddParam(cmd, "@import_profile_key", importProfileKey.ToString());
+        AddParam(cmd, "@import_profile_key", importProfileKey);
 
         using var reader = await ExecuteReaderAsync(cmd, ct).ConfigureAwait(false);
         if (!await reader.ReadAsync(ct).ConfigureAwait(false))
