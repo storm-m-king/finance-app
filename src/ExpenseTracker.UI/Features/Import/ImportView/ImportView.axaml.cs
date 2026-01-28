@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Reactive.Disposables;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -6,7 +7,7 @@ using Avalonia.Platform.Storage;
 using Avalonia.ReactiveUI;
 using ReactiveUI;
 
-namespace ExpenseTracker.UI.Features.Import;
+namespace ExpenseTracker.UI.Features.Import.ImportView;
 
 public partial class ImportView : ReactiveUserControl<ImportViewModel>
 {
@@ -17,8 +18,8 @@ public partial class ImportView : ReactiveUserControl<ImportViewModel>
         this.WhenActivated(disposables =>
         {
             if (ViewModel is null) return;
-
-            ViewModel.PickFile.Subscribe(async _ => await PickCsvAsync());
+            ViewModel.LoadProfiles.Execute().Subscribe().DisposeWith(disposables);
+            ViewModel.PickFile.Subscribe(async _ => await PickCsvAsync()).DisposeWith(disposables);
         });
     }
 

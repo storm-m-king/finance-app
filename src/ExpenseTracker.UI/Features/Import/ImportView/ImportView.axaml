@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:svg="clr-namespace:Avalonia.Svg.Skia;assembly=Avalonia.Svg.Skia"
              xmlns:shapes="clr-namespace:Avalonia.Controls.Shapes;assembly=Avalonia.Controls"
-             x:Class="ExpenseTracker.UI.Features.Import.ImportView">
+             x:Class="ExpenseTracker.UI.Features.Import.ImportView.ImportView">
 
   <ScrollViewer VerticalScrollBarVisibility="Auto"
                 HorizontalScrollBarVisibility="Disabled">
@@ -225,6 +225,7 @@
 
                 <ComboBox ItemsSource="{Binding MappingProfiles}"
                           SelectedItem="{Binding SelectedMappingProfile}"
+                          DisplayMemberBinding="{Binding DisplayName}"
                           HorizontalAlignment="Stretch"
                           HorizontalContentAlignment="Left"/>
 

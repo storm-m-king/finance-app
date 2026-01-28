@@ -1,6 +1,6 @@
 using Avalonia.ReactiveUI;
 
-namespace ExpenseTracker.UI.Features.Import.Complete;
+namespace ExpenseTracker.UI.Features.Import.CompleteView;
 
 public partial class ImportCompleteView : ReactiveUserControl<ImportCompleteViewModel>
 {

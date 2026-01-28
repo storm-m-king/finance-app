@@ -2,7 +2,7 @@ using System.Reactive;
 using ReactiveUI;
 using ExpenseTracker.UI.ViewModels;
 
-namespace ExpenseTracker.UI.Features.Import.Complete;
+namespace ExpenseTracker.UI.Features.Import.CompleteView;
 
 public sealed class ImportCompleteViewModel : ViewModelBase
 {

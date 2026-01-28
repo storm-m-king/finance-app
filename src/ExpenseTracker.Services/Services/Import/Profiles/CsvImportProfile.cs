@@ -80,7 +80,18 @@ public sealed class CsvImportProfile : ICsvImportProfile
 
             var postedDate = ParseDate(row[DateHeader], ProfileName);
             var rawDescription = Require(row[DescriptionHeader], $"{ProfileName}: {DescriptionHeader}");
-            var amountCents = ParseAmountToCents(row[AmountHeader], ProfileName);
+
+            var amountCents = 0L;
+            try
+            {
+                // TODO: Handle this better. If a csv is missing amount, give an alternate amount column to parse.
+                // TODO: Example: CapitalOne CSV has Credit and Debit columns separate (right now we only use credit).
+                amountCents = ParseAmountToCents(row[AmountHeader], ProfileName);
+            }
+            catch (Exception)
+            {
+                continue; // Not all csv's have amount filled for the 'amount' column. 
+            }
 
             var normalized = BuildNormalizedDescription(row);
 
@@ -104,7 +115,7 @@ public sealed class CsvImportProfile : ICsvImportProfile
 
     private string BuildNormalizedDescription(Dictionary<string, string> row)
     {
-        var parts = _normalizedHeaders.Select(h => Require(row[h], $"{ProfileName}: {h}"));
+        var parts = _normalizedHeaders.Select(h => row[h]);
         return string.Join(_profile.NormalizedDescriptionDelimiter, parts);
     }
 
