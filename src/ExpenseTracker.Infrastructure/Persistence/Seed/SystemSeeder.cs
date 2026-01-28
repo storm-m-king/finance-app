@@ -17,6 +17,8 @@ public sealed class SystemSeeder
     // Seeded account IDs (stable, so imports/rules can rely on them)
     private static readonly Guid AmexAccountId = Guid.Parse("10000000-0000-0000-0000-000000000001");
     private static readonly Guid SofiAccountId = Guid.Parse("10000000-0000-0000-0000-000000000002");
+    private static readonly Guid ChaseAccountId = Guid.Parse("10000000-0000-0000-0000-000000000003");
+    private static readonly Guid CapitalOneAccountId = Guid.Parse("10000000-0000-0000-0000-000000000004");
 
     private readonly IAppLogger _appLogger;
     private readonly ISqliteConnectionFactory _factory;
@@ -86,6 +88,26 @@ public sealed class SystemSeeder
                     DescriptionHeader = "Description",
                     AmountHeader = "Amount",
                     NormalizedDescriptionHeader = "Description,Type,Current balance,Status",
+                },
+                new
+                {
+                    ProfileKey = "capone.v1",
+                    ProfileName = "Capital One",
+                    ExpectedHeaderCsv = "Transaction Date,Posted Date,Card No.,Description,Category,Debit,Credit",
+                    DateHeader = "Posted Date",
+                    DescriptionHeader = "Description",
+                    AmountHeader = "Debit",
+                    NormalizedDescriptionHeader = "Description,Transaction Date,Card No.,Category,Credit",
+                },
+                new
+                {
+                    ProfileKey = "chase.v1",
+                    ProfileName = "Chase",
+                    ExpectedHeaderCsv = "Transaction Date,Post Date,Description,Category,Type,Amount,Memo",
+                    DateHeader = "Post Date",
+                    DescriptionHeader = "Description",
+                    AmountHeader = "Amount",
+                    NormalizedDescriptionHeader = "Description,Transaction Date,Category,Type,Memo",
                 }
             });
     }
@@ -116,6 +138,22 @@ public sealed class SystemSeeder
                     Type = 0, // Checking
                     CreditSignConvention = 1, // CreditPositive_DebitNegative
                     ImportProfileKey = "sofi.v1"
+                },
+                new
+                {
+                    Id = CapitalOneAccountId.ToString(),
+                    Name = "Capital One",
+                    Type = 1, // Credit
+                    CreditSignConvention = 2, // CreditNegative_DebitPositive Credit is Ignored(only transfers)
+                    ImportProfileKey = "capone.v1"
+                },
+                new
+                {
+                    Id = ChaseAccountId.ToString(),
+                    Name = "Chase",
+                    Type = 1, // Credit
+                    CreditSignConvention = 1, // CreditPositive_DebitNegative
+                    ImportProfileKey = "chase.v1"
                 }
             });
     }
