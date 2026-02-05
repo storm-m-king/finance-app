@@ -1,7 +1,7 @@
 using Avalonia.ReactiveUI;
 using ReactiveUI;
 
-namespace ExpenseTracker.UI.Features.Import.Preview;
+namespace ExpenseTracker.UI.Features.Import.PreviewView;
 
 public partial class PreviewImportView : ReactiveUserControl<PreviewImportViewModel>
 {
