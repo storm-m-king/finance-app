@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS categories (
     id               TEXT    NOT NULL PRIMARY KEY,
     name             TEXT    NOT NULL,
     is_system        INTEGER NOT NULL,
-    is_user_editable INTEGER NOT NULL
+    is_user_editable INTEGER NOT NULL,
+    type             INTEGER NOT NULL
 );
 
 -- =========================

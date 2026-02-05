@@ -5,6 +5,7 @@ using ExpenseTracker.Infrastructure.Logging;
 using ExpenseTracker.Infrastructure.Persistence;
 using ExpenseTracker.Infrastructure.Persistence.Repositories;
 using ExpenseTracker.Infrastructure.Persistence.Seed;
+using ExpenseTracker.Services;
 using ExpenseTracker.Services.Contracts;
 using ExpenseTracker.Services.Services.FingerPrint;
 using ExpenseTracker.Services.Services.Import;
@@ -100,10 +101,12 @@ internal static class Program
         // Services 
         services.AddSingleton<IImportService, ImportService>();
         services.AddSingleton<IFingerprintService, Sha256FingerprintService>();
+        services.AddSingleton<ICategoryService, CategoryService>();
         
         // Repositories
         services.AddSingleton<IAccountRepository, AccountRepository>();
         services.AddSingleton<IImportProfileRepository, ImportProfileRepository>();
+        services.AddSingleton<ICategoryRepository, CategoryRepository>();
         
 
         // Short-lived startup helpers used during application initialization.

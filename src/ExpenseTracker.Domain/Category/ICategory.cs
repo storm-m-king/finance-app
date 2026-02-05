@@ -43,6 +43,8 @@ public interface ICategory
     /// represent core concepts (e.g., Transfers, Uncategorized).
     /// </remarks>
     bool IsSystemCategory { get; }
+    
+    CategoryType Type { get; }
 
     /// <summary>
     /// Gets a value indicating whether this category may be modified by the user.
