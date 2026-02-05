@@ -106,36 +106,7 @@ public interface ICategoryRepository
     /// <paramref name="category"/>.
     /// </para>
     /// </remarks>
-    Task AddAsync(Category category, CancellationToken ct = default);
-
-    /// <summary>
-    /// Updates an existing category.
-    /// </summary>
-    /// <param name="category">The category state to persist.</param>
-    /// <param name="ct">A token to observe for cancellation.</param>
-    /// <returns>A task that completes when the operation finishes.</returns>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="category"/> is <see langword="null"/>.
-    /// </exception>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="category"/> has an empty <see cref="Category.Id"/>.
-    /// </exception>
-    /// <exception cref="KeyNotFoundException">
-    /// Thrown when no category exists with <paramref name="category"/>'s <see cref="Category.Id"/> (implementation-dependent).
-    /// </exception>
-    /// <exception cref="OperationCanceledException">
-    /// Thrown if the operation is canceled via <paramref name="ct"/>.
-    /// </exception>
-    /// <remarks>
-    /// <para><b>Preconditions:</b>
-    /// <paramref name="category"/> is not <see langword="null"/> and identifies an existing persisted category.
-    /// </para>
-    /// <para><b>Postconditions:</b>
-    /// On success, the persisted category with the same <see cref="Category.Id"/> reflects the state carried by
-    /// <paramref name="category"/>.
-    /// </para>
-    /// </remarks>
-    Task UpdateAsync(Category category, CancellationToken ct = default);
+    Task AddOrUpdateAsync(Category category, CancellationToken ct = default);
 
     /// <summary>
     /// Deletes a category by its identifier.

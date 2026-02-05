@@ -36,6 +36,11 @@ public sealed class Category : ICategory
     public string Name { get; }
 
     /// <summary>
+    /// Bucket category gets placed under in UI - May have more use cases as we go
+    /// </summary>
+    public CategoryType Type { get; private set; } = CategoryType.Default;
+
+    /// <summary>
     /// Gets a value indicating whether this category is system-defined.
     /// </summary>
     /// <remarks>
@@ -66,21 +71,27 @@ public sealed class Category : ICategory
     /// <param name="isSystemCategory">
     /// A value indicating whether the category is system-defined.
     /// </param>
+    /// <param name="type"> The type of category it is (Income,Expense,Transfer)</param>
+    /// 
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="id"/> is <see cref="Guid.Empty"/> or when
     /// <paramref name="name"/> is null, empty, or consists only of whitespace.
     /// </exception>
-    public Category(Guid id, string name, bool isSystemCategory)
+    public Category(Guid id, string name, bool isSystemCategory, CategoryType type)
     {
         if (id == Guid.Empty)
             throw new ArgumentException("Id cannot be empty.", nameof(id));
 
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Name cannot be null or empty.", nameof(name));
+        
+        if (type == CategoryType.Default)
+            throw new ArgumentException("Type cannot be default.", nameof(type));
 
         Id = id;
         Name = name.Trim();
         IsSystemCategory = isSystemCategory;
+        Type = type;
     }
 
     /// <summary>
@@ -114,6 +125,14 @@ public sealed class Category : ICategory
         if (string.IsNullOrWhiteSpace(newName))
             throw new ArgumentException("Name cannot be null or empty.", nameof(newName));
 
-        return new Category(Id, newName.Trim(), isSystemCategory: false);
+        return new Category(Id, newName.Trim(), isSystemCategory: false, Type);
+    }
+
+    /// <summary>
+    /// Method to update CategoryType. CategoryType cannot be defult.
+    /// </summary>
+    public void UpdateCategoryType(CategoryType type)
+    {
+        Type = type;
     }
 }

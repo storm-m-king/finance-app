@@ -114,7 +114,7 @@ public sealed class CategoryRepository : ICategoryRepository
     }
 
     /// <inheritdoc />
-    public async Task AddAsync(Category category, CancellationToken ct = default)
+    public async Task AddOrUpdateAsync(Category category, CancellationToken ct = default)
     {
         if (category is null)
             throw new ArgumentNullException(nameof(category));
@@ -122,27 +122,29 @@ public sealed class CategoryRepository : ICategoryRepository
         if (category.Id == Guid.Empty)
             throw new ArgumentException("Category id cannot be empty.", nameof(category));
 
-        if (await ExistsAsync(category.Id, ct).ConfigureAwait(false))
-            throw new InvalidOperationException($"A category with id '{category.Id}' already exists.");
-
         using var conn = _connectionFactory.CreateOpenConnection();
         using var cmd = conn.CreateCommand();
 
+        // Uses SQLite UPSERT semantics (same pattern as ImportProfileRepository)
         cmd.CommandText =
             @"
-              INSERT INTO categories (
-                id,
-                name,
-                is_system,
-                type
-              )
-              VALUES (
-                @id,
-                @name,
-                @is_system,
-                @type
-              );
-             ";
+          INSERT INTO categories (
+            id,
+            name,
+            is_system,
+            type
+          )
+          VALUES (
+            @id,
+            @name,
+            @is_system,
+            @type
+          )
+          ON CONFLICT(id) DO UPDATE SET
+            name = excluded.name,
+            is_system = excluded.is_system,
+            type = excluded.type;
+         ";
 
         AddParam(cmd, "@id", category.Id.ToString());
         AddParam(cmd, "@name", category.Name);
@@ -152,40 +154,6 @@ public sealed class CategoryRepository : ICategoryRepository
         await ExecuteNonQueryAsync(cmd, ct).ConfigureAwait(false);
     }
 
-    /// <inheritdoc />
-    public async Task UpdateAsync(Category category, CancellationToken ct = default)
-    {
-        if (category is null)
-            throw new ArgumentNullException(nameof(category));
-
-        if (category.Id == Guid.Empty)
-            throw new ArgumentException("Category id cannot be empty.", nameof(category));
-
-        if (!await ExistsAsync(category.Id, ct).ConfigureAwait(false))
-            throw new KeyNotFoundException($"No category exists with id '{category.Id}'.");
-
-        using var conn = _connectionFactory.CreateOpenConnection();
-        using var cmd = conn.CreateCommand();
-
-        cmd.CommandText =
-            @"
-              UPDATE categories
-              SET
-                name = @name,
-                is_system = @is_system,
-                type = @type
-              WHERE id = @id;
-             ";
-
-        AddParam(cmd, "@id", category.Id.ToString());
-        AddParam(cmd, "@name", category.Name);
-        AddParam(cmd, "@is_system", category.IsSystemCategory ? 1 : 0);
-        AddParam(cmd, "@type", category.Type.ToString());
-
-        var affected = await ExecuteNonQueryAsync(cmd, ct).ConfigureAwait(false);
-        if (affected == 0)
-            throw new KeyNotFoundException($"No category exists with id '{category.Id}'.");
-    }
 
     /// <inheritdoc />
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)

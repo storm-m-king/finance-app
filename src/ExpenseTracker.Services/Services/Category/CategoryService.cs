@@ -21,61 +21,109 @@ public sealed class CategoryService : ICategoryService
         string typeText,
         CancellationToken ct = default)
     {
-        // -----------------------------
-        // Validate Name
-        // -----------------------------
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Category name cannot be null or empty.", nameof(name));
 
         var trimmedName = name.Trim();
-
-        // -----------------------------
-        // Parse Category Type
-        // -----------------------------
         var parsedType = ParseCategoryType(typeText);
 
-        // -----------------------------
-        // Enforce Duplicate Name Rule
-        // -----------------------------
+        // Enforce duplicate name rule (global, case-insensitive)
         var existing = await _repository.GetAllAsync(ct).ConfigureAwait(false);
+        if (existing.Any(c => string.Equals(c.Name, trimmedName, StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException($"A category named '{trimmedName}' already exists.");
 
-        if (existing.Any(c =>
-            string.Equals(c.Name, trimmedName, StringComparison.OrdinalIgnoreCase)))
+        var category = new Category(
+            id: Guid.NewGuid(),
+            name: trimmedName,
+            isSystemCategory: false,
+            type: parsedType);
+
+        await _repository.AddOrUpdateAsync(category, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Retrieves all persisted categories.
+    /// </summary>
+    public Task<IReadOnlyList<Category>> GetAllCategoriesAsync(CancellationToken ct = default)
+        => _repository.GetAllAsync(ct);
+
+    /// <summary>
+    /// Updates an existing user category by id.
+    /// </summary>
+    /// <param name="id">Category identifier.</param>
+    /// <param name="newName">New category name.</param>
+    /// <param name="typeText">New category type text.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException">Thrown when inputs are invalid.</exception>
+    /// <exception cref="KeyNotFoundException">Thrown when the category does not exist.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when the category is system-defined, or when the rename violates uniqueness rules.
+    /// </exception>
+    public async Task UpdateUserCategoryAsync(Guid id, string newName, string typeText, CancellationToken ct = default)
+    {
+        if (id == Guid.Empty)
+            throw new ArgumentException("Id cannot be empty.", nameof(id));
+
+        if (string.IsNullOrWhiteSpace(newName))
+            throw new ArgumentException("Category name cannot be null or empty.", nameof(newName));
+
+        var trimmedName = newName.Trim();
+        var parsedType = ParseCategoryType(typeText);
+
+        var existing = await _repository.GetByIdAsync(id, ct).ConfigureAwait(false);
+        if (existing is null)
+            throw new KeyNotFoundException($"No category exists with id '{id}'.");
+
+        if (existing.IsSystemCategory)
+            throw new InvalidOperationException("System categories cannot be modified.");
+
+        // Enforce duplicate name rule (exclude self)
+        var all = await _repository.GetAllAsync(ct).ConfigureAwait(false);
+        if (all.Any(c =>
+                c.Id != id &&
+                string.Equals(c.Name, trimmedName, StringComparison.OrdinalIgnoreCase)))
         {
-            throw new InvalidOperationException(
-                $"A category named '{trimmedName}' already exists.");
+            throw new InvalidOperationException($"A category named '{trimmedName}' already exists.");
         }
 
-        // -----------------------------
-        // Create Domain Object
-        // -----------------------------
-        var category = new Category(
-            Guid.NewGuid(),
-            trimmedName,
-            isSystemCategory: false,
-            parsedType);
+        // Keep immutability: create a new instance with updated fields.
+        // Rename() already enforces user-editable rule; we already checked IsSystemCategory.
+        var renamed = (Category)existing.Rename(trimmedName);
 
-        // -----------------------------
-        // Persist
-        // -----------------------------
-        await _repository.AddAsync(category, ct).ConfigureAwait(false);
+        // Category.Type has a private setter; use domain method to update it.
+        renamed.UpdateCategoryType(parsedType);
+
+        await _repository.AddOrUpdateAsync(renamed, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Deletes an existing user category by id.
+    /// </summary>
+    /// <param name="id">Category identifier.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="id"/> is empty.</exception>
+    /// <exception cref="KeyNotFoundException">Thrown when the category does not exist.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the category is system-defined.</exception>
+    public async Task DeleteUserCategoryAsync(Guid id, CancellationToken ct = default)
+    {
+        if (id == Guid.Empty)
+            throw new ArgumentException("Id cannot be empty.", nameof(id));
+
+        // Optional pre-check for better service-level error messaging.
+        var existing = await _repository.GetByIdAsync(id, ct).ConfigureAwait(false);
+        if (existing is null)
+            throw new KeyNotFoundException($"No category exists with id '{id}'.");
+
+        if (existing.IsSystemCategory)
+            throw new InvalidOperationException("System categories cannot be deleted.");
+
+        await _repository.DeleteAsync(id, ct).ConfigureAwait(false);
     }
 
     // =====================================================
     // Private Helpers
     // =====================================================
 
-    /// <summary>
-    /// Converts user-provided text into a valid <see cref="CategoryType"/>.
-    /// </summary>
-    /// <param name="typeText">User input describing the category type.</param>
-    /// <returns>A validated <see cref="CategoryType"/>.</returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when input is null, empty, whitespace, or not a valid enum value.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when the parsed enum value is <see cref="CategoryType.Default"/>.
-    /// </exception>
     private static CategoryType ParseCategoryType(string typeText)
     {
         if (string.IsNullOrWhiteSpace(typeText))
@@ -90,5 +138,4 @@ public sealed class CategoryService : ICategoryService
 
         return parsed;
     }
-
 }
