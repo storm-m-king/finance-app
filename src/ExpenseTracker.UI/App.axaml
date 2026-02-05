@@ -223,6 +223,18 @@
     <Style Selector="Button.primaryWide:pointerover">
       <Setter Property="Opacity" Value="0.95" />
     </Style>
+    
+    <Style Selector="Button.iconButton">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Opacity" Value="0.75"/>
+      <Setter Property="CornerRadius" Value="6"/>
+    </Style>
+
+    <Style Selector="Button.iconButton:pointerover">
+      <Setter Property="Background" Value="#1AFFFFFF"/>
+      <Setter Property="Opacity" Value="1"/>
+    </Style>
+
 
     <!-- Secondary wide (Back) -->
     <Style Selector="Button.secondaryWide">

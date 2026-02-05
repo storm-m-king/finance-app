@@ -6,6 +6,7 @@
         xmlns:imp="using:ExpenseTracker.UI.Features.Import.ImportView"
         xmlns:impPrev="using:ExpenseTracker.UI.Features.Import.PreviewView"
         xmlns:importComplete="using:ExpenseTracker.UI.Features.Import.CompleteView"
+        xmlns:categories="clr-namespace:ExpenseTracker.UI.Features.Categories"
         x:Class="ExpenseTracker.UI.Shell.MainWindow"
         Width="1200" Height="750"
         Title="Expense Tracker">
@@ -36,6 +37,11 @@
         <DataTemplate DataType="importComplete:ImportCompleteViewModel">
             <importComplete:ImportCompleteView/>
         </DataTemplate>
+        
+        <DataTemplate DataType="{x:Type categories:CategoriesViewModel}">
+            <categories:CategoriesView/>
+        </DataTemplate>
+
     </Window.DataTemplates>
 
     <!-- Slightly narrower sidebar -->

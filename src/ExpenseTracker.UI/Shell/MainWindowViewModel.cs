@@ -108,7 +108,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         GoCategories = ReactiveCommand.Create(() =>
         {
             SelectNav(categories: true);
-            Current = new PlaceholderViewModel("Categories");
+            Current = new ExpenseTracker.UI.Features.Categories.CategoriesViewModel();
         });
 
         GoRules = ReactiveCommand.Create(() =>
