@@ -97,7 +97,8 @@
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Top"
                             Margin="10,0,10,0"
-                            IsVisible="{Binding ShowDropLineAbove}" />
+                            IsVisible="{Binding ShowDropLineAbove}"
+                            ZIndex="2000" />
 
                     <!-- The card -->
                     <Border Tag="{Binding}"
@@ -250,7 +251,8 @@
                             HorizontalAlignment="Stretch"
                             VerticalAlignment="Bottom"
                             Margin="10,0,10,0"
-                            IsVisible="{Binding ShowDropLineBelow}" />
+                            IsVisible="{Binding ShowDropLineBelow}"
+                            ZIndex="2000" />
 
                   </Grid>
                 </DataTemplate>
@@ -411,8 +413,6 @@
                                                 IsVisible="{Binding IsDateValueVisible}"
                                                 MaxWidth="220"
                                                 Margin="0,0,10,0"/>
-
-
 
 
                             <!-- Amount dollars input -->
