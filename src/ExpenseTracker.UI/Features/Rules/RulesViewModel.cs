@@ -1,10 +1,7 @@
-using System;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.ComponentModel;
 using System.Globalization;
-using System.Linq;
 using System.Reactive;
+using System.Text.RegularExpressions;
 using ReactiveUI;
 using ExpenseTracker.UI.ViewModels;
 
@@ -24,14 +21,13 @@ public sealed class RulesViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _isAddRuleModalOpen, value);
     }
 
-    public AddRuleDraftViewModel AddRuleDraft { get; } = new();
+    private bool _isEditRuleModalOpen;
+    public bool IsEditRuleModalOpen
+    {
+        get => _isEditRuleModalOpen;
+        private set => this.RaiseAndSetIfChanged(ref _isEditRuleModalOpen, value);
+    }
 
-    public ReactiveCommand<Unit, Unit> CloseAddRule { get; }
-    public ReactiveCommand<Unit, Unit> SaveAddRule { get; }
-
-    // -----------------------
-    // Delete modal state + commands (minimal, focused on delete flow)
-    // -----------------------
     private bool _isDeleteModalOpen;
     public bool IsDeleteModalOpen
     {
@@ -39,26 +35,24 @@ public sealed class RulesViewModel : ViewModelBase
         private set => this.RaiseAndSetIfChanged(ref _isDeleteModalOpen, value);
     }
 
+    public AddRuleDraftViewModel AddRuleDraft { get; } = new();
+
+    private RuleRowViewModel? _editTarget;
     private RuleRowViewModel? _deleteTarget;
-    public RuleRowViewModel? DeleteTarget
-    {
-        get => _deleteTarget;
-        private set
-        {
-            this.RaiseAndSetIfChanged(ref _deleteTarget, value);
-            // Keep prompt text reactive
-            this.RaisePropertyChanged(nameof(DeletePromptLine1));
-            this.RaisePropertyChanged(nameof(DeletePromptLine2));
-        }
-    }
 
     public string DeletePromptLine1 =>
-        DeleteTarget is null
+        _deleteTarget is null
             ? "Are you sure you want to delete this rule?"
-            : $"Are you sure you want to delete “{DeleteTarget.Title}”?.";
+            : $"Are you sure you want to delete “{_deleteTarget.Title}”?	";
 
-    public string DeletePromptLine2 =>
-        "This action cannot be undone.";
+    public string DeletePromptLine2 => "This action cannot be undone.";
+
+    public ReactiveCommand<Unit, Unit> CloseAddRule { get; }
+    public ReactiveCommand<Unit, Unit> SaveAddRule { get; }
+
+    public ReactiveCommand<RuleRowViewModel, Unit> OpenEdit { get; private set; }
+    public ReactiveCommand<Unit, Unit> CloseEdit { get; private set; }
+    public ReactiveCommand<Unit, Unit> SaveEdit { get; private set; }
 
     public ReactiveCommand<RuleRowViewModel, Unit> OpenDelete { get; private set; }
     public ReactiveCommand<Unit, Unit> CloseModal { get; private set; }
@@ -66,126 +60,47 @@ public sealed class RulesViewModel : ViewModelBase
 
     public RulesViewModel()
     {
-        // Seed sample rules using the same rendering logic as AddRuleDraft.BuildIfText/BuildThenText.
-        // This ensures uniform text rendering and avoids constructing combined text inside a single condition.
-
-        // Grocery rule
-        var groceryDraft = new AddRuleDraftViewModel();
-        groceryDraft.RuleTitle = "Classify Grocery Stores";
-        groceryDraft.Conditions.Clear();
-        var g1 = new ConditionRowViewModel(groceryDraft.AvailableCategories)
-        {
-            SelectedField = "Description",
-            SelectedOperator = null
-        };
+        // Seed a few example rules (preview text produced by drafts for consistency)
+        var draft = new AddRuleDraftViewModel();
+        draft.RuleTitle = "Classify Grocery Stores";
+        draft.Conditions.Clear();
+        var g1 = new ConditionRowViewModel(draft.AvailableCategories) { SelectedField = "Description", TextValue = "Trader Joe" };
         g1.SelectedOperator = g1.Operators.FirstOrDefault(o => o.Key == "contains");
-        g1.TextValue = "Trader Joe";
-        groceryDraft.Conditions.Add(g1);
-
-        var g2 = new ConditionRowViewModel(groceryDraft.AvailableCategories)
-        {
-            ShowCombinator = true,
-            SelectedCombinator = "OR",
-            SelectedField = "Description"
-        };
+        draft.Conditions.Add(g1);
+        var g2 = new ConditionRowViewModel(draft.AvailableCategories) { ShowCombinator = true, SelectedCombinator = "OR", SelectedField = "Description", TextValue = "Whole Foods" };
         g2.SelectedOperator = g2.Operators.FirstOrDefault(o => o.Key == "contains");
-        g2.TextValue = "Whole Foods";
-        groceryDraft.Conditions.Add(g2);
-
-        var g3 = new ConditionRowViewModel(groceryDraft.AvailableCategories)
-        {
-            ShowCombinator = true,
-            SelectedCombinator = "OR",
-            SelectedField = "Description"
-        };
+        draft.Conditions.Add(g2);
+        var g3 = new ConditionRowViewModel(draft.AvailableCategories) { ShowCombinator = true, SelectedCombinator = "OR", SelectedField = "Description", TextValue = "Safeway" };
         g3.SelectedOperator = g3.Operators.FirstOrDefault(o => o.Key == "contains");
-        g3.TextValue = "Safeway";
-        groceryDraft.Conditions.Add(g3);
-
-        var groceryIf = groceryDraft.BuildIfText();
-        var groceryThen = "Set category to 'Groceries'";
-        Rules.Add(new RuleRowViewModel("Classify Grocery Stores", groceryIf, groceryThen, isEnabled: true));
+        draft.Conditions.Add(g3);
+        Rules.Add(new RuleRowViewModel("Classify Grocery Stores", draft.BuildIfText(), "Set category to 'Groceries'", isEnabled: true));
 
         // Fast food
-        var fastDraft = new AddRuleDraftViewModel();
-        fastDraft.RuleTitle = "Classify Fast Food";
-        fastDraft.Conditions.Clear();
-
-        var f1 = new ConditionRowViewModel(fastDraft.AvailableCategories)
-        {
-            SelectedField = "Description"
-        };
+        draft.Reset();
+        draft.RuleTitle = "Classify Fast Food";
+        draft.Conditions.Clear();
+        var f1 = new ConditionRowViewModel(draft.AvailableCategories) { SelectedField = "Description", TextValue = "Chipotle" };
         f1.SelectedOperator = f1.Operators.FirstOrDefault(o => o.Key == "contains");
-        f1.TextValue = "Chipotle";
-        fastDraft.Conditions.Add(f1);
-
-        var f2 = new ConditionRowViewModel(fastDraft.AvailableCategories)
-        {
-            ShowCombinator = true,
-            SelectedCombinator = "OR",
-            SelectedField = "Description"
-        };
+        draft.Conditions.Add(f1);
+        var f2 = new ConditionRowViewModel(draft.AvailableCategories) { ShowCombinator = true, SelectedCombinator = "OR", SelectedField = "Description", TextValue = "McDonalds" };
         f2.SelectedOperator = f2.Operators.FirstOrDefault(o => o.Key == "contains");
-        f2.TextValue = "McDonalds";
-        fastDraft.Conditions.Add(f2);
-
-        var f3 = new ConditionRowViewModel(fastDraft.AvailableCategories)
-        {
-            ShowCombinator = true,
-            SelectedCombinator = "OR",
-            SelectedField = "Description"
-        };
+        draft.Conditions.Add(f2);
+        var f3 = new ConditionRowViewModel(draft.AvailableCategories) { ShowCombinator = true, SelectedCombinator = "OR", SelectedField = "Description", TextValue = "Taco Bell" };
         f3.SelectedOperator = f3.Operators.FirstOrDefault(o => o.Key == "contains");
-        f3.TextValue = "Taco Bell";
-        fastDraft.Conditions.Add(f3);
+        draft.Conditions.Add(f3);
+        Rules.Add(new RuleRowViewModel("Classify Fast Food", draft.BuildIfText(), "Set category to 'Dining Out'", isEnabled: true));
 
-        var fastIf = fastDraft.BuildIfText();
-        var fastThen = "Set category to 'Dining Out'";
-        Rules.Add(new RuleRowViewModel("Classify Fast Food", fastIf, fastThen, isEnabled: true));
-
-        // Mark Paycheck: Description contains 'Payroll' AND Amount > 1000
-        var payDraft = new AddRuleDraftViewModel();
-        payDraft.RuleTitle = "Mark Paycheck";
-        payDraft.Conditions.Clear();
-
-        var p1 = new ConditionRowViewModel(payDraft.AvailableCategories)
-        {
-            SelectedField = "Description"
-        };
+        // Paycheck
+        draft.Reset();
+        draft.RuleTitle = "Mark Paycheck";
+        draft.Conditions.Clear();
+        var p1 = new ConditionRowViewModel(draft.AvailableCategories) { SelectedField = "Description", TextValue = "Payroll" };
         p1.SelectedOperator = p1.Operators.FirstOrDefault(o => o.Key == "contains");
-        p1.TextValue = "Payroll";
-        payDraft.Conditions.Add(p1);
-
-        var p2 = new ConditionRowViewModel(payDraft.AvailableCategories)
-        {
-            ShowCombinator = true,
-            SelectedCombinator = "AND",
-            SelectedField = "Amount"
-        };
+        draft.Conditions.Add(p1);
+        var p2 = new ConditionRowViewModel(draft.AvailableCategories) { ShowCombinator = true, SelectedCombinator = "AND", SelectedField = "Amount", AmountDollarsText = "1000" };
         p2.SelectedOperator = p2.Operators.FirstOrDefault(o => o.Key == "gt");
-        p2.AmountDollarsText = "1000";
-        payDraft.Conditions.Add(p2);
-
-        var payIf = payDraft.BuildIfText();
-        var payThen = "Set category to 'Income'";
-        Rules.Add(new RuleRowViewModel("Mark Paycheck", payIf, payThen, isEnabled: true));
-
-        // Auto-approve small transactions (Amount < 10)
-        var smallDraft = new AddRuleDraftViewModel();
-        smallDraft.RuleTitle = "Auto-approve Small Transactions";
-        smallDraft.Conditions.Clear();
-
-        var s1 = new ConditionRowViewModel(smallDraft.AvailableCategories)
-        {
-            SelectedField = "Amount"
-        };
-        s1.SelectedOperator = s1.Operators.FirstOrDefault(o => o.Key == "lt");
-        s1.AmountDollarsText = "10";
-        smallDraft.Conditions.Add(s1);
-
-        var smallIf = smallDraft.BuildIfText();
-        var smallThen = "Set category to 'Uncategorized'"; // changed from 'Mark as Reviewed'
-        Rules.Add(new RuleRowViewModel("Auto-approve Small Transactions", smallIf, smallThen, isEnabled: false));
+        draft.Conditions.Add(p2);
+        Rules.Add(new RuleRowViewModel("Mark Paycheck", draft.BuildIfText(), "Set category to 'Income'", isEnabled: true));
 
         AddRule = ReactiveCommand.Create(() =>
         {
@@ -193,76 +108,209 @@ public sealed class RulesViewModel : ViewModelBase
             IsAddRuleModalOpen = true;
         });
 
-        CloseAddRule = ReactiveCommand.Create(() =>
-        {
-            IsAddRuleModalOpen = false;
-        });
+        CloseAddRule = ReactiveCommand.Create(() => { IsAddRuleModalOpen = false; });
 
-        // SaveAddRule now enabled only when AddRuleDraft.IsValid == true
         SaveAddRule = ReactiveCommand.Create(
             () =>
             {
-                var title = string.IsNullOrWhiteSpace(AddRuleDraft.RuleTitle)
-                    ? "New Rule"
-                    : AddRuleDraft.RuleTitle.Trim();
-
+                var title = string.IsNullOrWhiteSpace(AddRuleDraft.RuleTitle) ? "New Rule" : AddRuleDraft.RuleTitle.Trim();
                 var ifText = AddRuleDraft.BuildIfText();
                 var thenText = AddRuleDraft.BuildThenText();
 
                 Rules.Add(new RuleRowViewModel(title, ifText, thenText, isEnabled: true));
                 Reindex();
-
                 IsAddRuleModalOpen = false;
             },
-            AddRuleDraft.WhenAnyValue(d => d.IsValid)
+            AddRuleDraft.WhenAnyValue(x => x.IsValid)
         );
 
-        RerunAllRules = ReactiveCommand.Create(() => { /* later: call service */ });
+        RerunAllRules = ReactiveCommand.Create(() => { /* placeholder */ });
 
-        // ---- Delete command implementations (minimal, consistent with Categories pattern) ----
+        OpenEdit = ReactiveCommand.Create<RuleRowViewModel>(OpenEditImpl);
+        CloseEdit = ReactiveCommand.Create(() =>
+        {
+            IsEditRuleModalOpen = false;
+            _editTarget = null;
+        });
+        SaveEdit = ReactiveCommand.Create(
+            () =>
+            {
+                if (_editTarget is null) return;
+                var title = string.IsNullOrWhiteSpace(AddRuleDraft.RuleTitle) ? "New Rule" : AddRuleDraft.RuleTitle.Trim();
+                var ifText = AddRuleDraft.BuildIfText();
+                var thenText = AddRuleDraft.BuildThenText();
+
+                var idx = Rules.IndexOf(_editTarget);
+                var enabled = _editTarget.IsEnabled;
+                if (idx >= 0)
+                    Rules[idx] = new RuleRowViewModel(title, ifText, thenText, enabled);
+
+                _editTarget = null;
+                IsEditRuleModalOpen = false;
+                Reindex();
+            },
+            AddRuleDraft.WhenAnyValue(x => x.IsValid)
+        );
+
         OpenDelete = ReactiveCommand.Create<RuleRowViewModel>(rule =>
         {
             if (rule is null) return;
-
-            DeleteTarget = rule;
+            _deleteTarget = rule;
             IsDeleteModalOpen = true;
+            this.RaisePropertyChanged(nameof(DeletePromptLine1));
         });
 
         CloseModal = ReactiveCommand.Create(() =>
         {
             IsDeleteModalOpen = false;
-            DeleteTarget = null;
+            _delete_target_clear();
         });
 
         ConfirmDelete = ReactiveCommand.Create(() =>
         {
-            if (DeleteTarget is null) return;
-
-            Rules.Remove(DeleteTarget);
+            if (_deleteTarget is null) return;
+            Rules.Remove(_deleteTarget);
             Reindex();
-
-            DeleteTarget = null;
+            // Close modal and clear target so UI doesn't remain focused on an empty selection
             IsDeleteModalOpen = false;
+            _delete_target_clear();
         });
 
         Reindex();
     }
 
+    private void _delete_target_clear()
+    {
+        _deleteTarget = null;
+        this.RaisePropertyChanged(nameof(DeletePromptLine1));
+    }
+
+    private void OpenEditImpl(RuleRowViewModel rule)
+    {
+        if (rule is null) return;
+
+        // Reset draft
+        AddRuleDraft.Reset();
+        AddRuleDraft.RuleTitle = rule.Title ?? "";
+
+        // THEN: parse Set category to 'X' (exact format produced by BuildThenText)
+        if (!string.IsNullOrWhiteSpace(rule.ThenText) && rule.ThenText.StartsWith("Set category to", StringComparison.OrdinalIgnoreCase))
+        {
+            // Use regex to reliably extract the quoted category (handles edge cases)
+            var m = Regex.Match(rule.ThenText, @"'([^']+)'");
+            if (m.Success)
+            {
+                var cat = m.Groups[1].Value;
+                if (AddRuleDraft.AvailableCategories.Contains(cat))
+                    AddRuleDraft.SelectedCategory = cat;
+            }
+            AddRuleDraft.SelectedThenAction = "Set Category";
+        }
+
+        // IF: parse preview created by BuildIfText (stable format)
+        AddRuleDraft.Conditions.Clear();
+        var ifText = (rule.IfText ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(ifText))
+        {
+            AddRuleDraft.AddCondition.Execute().Subscribe();
+        }
+        else
+        {
+            // Pattern: optional leading combinator then Field OperatorLabel [Value]
+            // We rely on the exact labels produced by BuildIfText (Operator.Label).
+            var pattern = @"\s*(AND|OR)?\s*(Date|Description|Amount|Category)\s+([A-Za-z\s]+?)(?:\s+('.*?'|\$[\d,]+\.\d{2}|\d{4}-\d{2}-\d{2}))?(?=(\s+(?:AND|OR)\s+|$))";
+            var matches = Regex.Matches(ifText, pattern, RegexOptions.IgnoreCase);
+
+            if (matches.Count == 0)
+            {
+                // fallback: single description condition with the whole preview text
+                var row = new ConditionRowViewModel(AddRuleDraft.AvailableCategories) { SelectedField = "Description", TextValue = ifText };
+                row.SelectedOperator = row.Operators.FirstOrDefault(o => o.Key == "contains");
+                // ensure RemoveMe behaves same as AddConditionRow
+                row.RemoveMe = ReactiveCommand.Create(() =>
+                {
+                    if (AddRuleDraft.Conditions.Contains(row))
+                        AddRuleDraft.Conditions.Remove(row);
+                    if (AddRuleDraft.Conditions.Count == 0)
+                        AddRuleDraft.AddCondition.Execute().Subscribe();
+                });
+                AddRuleDraft.Conditions.Add(row);
+            }
+            else
+            {
+                var first = true;
+                foreach (Match m in matches)
+                {
+                    var comb = m.Groups[1].Value;
+                    var field = m.Groups[2].Value;
+                    var opLabel = m.Groups[3].Value.Trim();
+                    var rawVal = m.Groups[4].Value;
+
+                    var row = new ConditionRowViewModel(AddRuleDraft.AvailableCategories) { SelectedField = field };
+                    row.ShowCombinator = !first;
+                    if (!first && !string.IsNullOrWhiteSpace(comb))
+                        row.SelectedCombinator = comb.ToUpperInvariant();
+
+                    // map operator by Label (case-insensitive)
+                    var opMatch = row.Operators.FirstOrDefault(o => string.Equals(o.Label, opLabel, StringComparison.OrdinalIgnoreCase));
+                    if (opMatch is not null) row.SelectedOperator = opMatch;
+
+                    if (!string.IsNullOrWhiteSpace(rawVal))
+                    {
+                        if (rawVal.StartsWith("'") && rawVal.EndsWith("'") && rawVal.Length >= 2)
+                        {
+                            var inner = rawVal.Substring(1, rawVal.Length - 2);
+                            if (field.Equals("Description", StringComparison.OrdinalIgnoreCase))
+                                row.TextValue = inner;
+                            else if (field.Equals("Category", StringComparison.OrdinalIgnoreCase))
+                                row.SelectedCategoryValue = inner;
+                        }
+                        else if (rawVal.StartsWith("$"))
+                        {
+                            var cleaned = rawVal.Replace("$", "").Replace(",", "");
+                            if (decimal.TryParse(cleaned, NumberStyles.Number, CultureInfo.InvariantCulture, out var d))
+                                row.AmountDollarsText = d.ToString("0.##", CultureInfo.InvariantCulture);
+                        }
+                        else if (DateTime.TryParseExact(rawVal, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
+                        {
+                            row.DateValue = dt;
+                        }
+                        else
+                        {
+                            if (field.Equals("Description", StringComparison.OrdinalIgnoreCase))
+                                row.TextValue = rawVal.Trim('\'');
+                        }
+                    }
+
+                    // ensure RemoveMe behaves same as AddConditionRow so user can delete parsed conditions
+                    row.RemoveMe = ReactiveCommand.Create(() =>
+                    {
+                        if (AddRuleDraft.Conditions.Contains(row))
+                            AddRuleDraft.Conditions.Remove(row);
+                        if (AddRuleDraft.Conditions.Count == 0)
+                            AddRuleDraft.AddCondition.Execute().Subscribe();
+                    });
+
+                    AddRuleDraft.Conditions.Add(row);
+                    first = false;
+                }
+            }
+        }
+
+        _editTarget = rule;
+        IsEditRuleModalOpen = true;
+    }
+
     public int IndexOf(RuleRowViewModel rule) => Rules.IndexOf(rule);
 
-    /// <summary>
-    /// Moves a rule to an "insertion index" (0..Count). This is snap-to-slot.
-    /// </summary>
     public void MoveRuleToIndex(RuleRowViewModel dragging, int insertionIndex)
     {
         var from = Rules.IndexOf(dragging);
         if (from < 0) return;
 
-        // clamp insertion index to [0..Count]
         if (insertionIndex < 0) insertionIndex = 0;
         if (insertionIndex > Rules.Count) insertionIndex = Rules.Count;
 
-        // If you remove an item above the insertion point, the insertion point shifts up by 1.
         var adjusted = insertionIndex;
         if (adjusted > from) adjusted--;
 
@@ -270,7 +318,6 @@ public sealed class RulesViewModel : ViewModelBase
 
         Rules.RemoveAt(from);
         Rules.Insert(adjusted, dragging);
-
         Reindex();
     }
 
@@ -284,456 +331,6 @@ public sealed class RulesViewModel : ViewModelBase
     {
         for (int i = 0; i < Rules.Count; i++)
             Rules[i].Order = i + 1;
-    }
-
-    // Helper to clone a ConditionRowViewModel (so rule gets its own instances)
-    private static ConditionRowViewModel CloneCondition(ConditionRowViewModel src, ObservableCollection<string> categories)
-    {
-        var dest = new ConditionRowViewModel(categories)
-        {
-            ShowCombinator = src.ShowCombinator,
-            SelectedCombinator = src.SelectedCombinator,
-            SelectedField = src.SelectedField,
-            TextValue = src.TextValue,
-            SelectedCategoryValue = src.SelectedCategoryValue,
-            DateValue = src.DateValue,
-            AmountDollarsText = src.AmountDollarsText
-        };
-
-        // Attempt to pick the same operator by key
-        if (src.SelectedOperator is not null)
-        {
-            var match = dest.Operators.FirstOrDefault(o => o.Key == src.SelectedOperator.Key);
-            if (match is not null)
-                dest.SelectedOperator = match;
-        }
-
-        return dest;
-    }
-
-    // ============================
-    // Add Rule Draft VM
-    // ============================
-    public sealed class AddRuleDraftViewModel : ViewModelBase
-    {
-        public ObservableCollection<ConditionRowViewModel> Conditions { get; } = new();
-
-        private string _ruleTitle = "";
-        public string RuleTitle
-        {
-            get => _ruleTitle;
-            set => this.RaiseAndSetIfChanged(ref _ruleTitle, value);
-        }
-
-        // THEN
-        public ObservableCollection<string> ThenActions { get; } = new()
-        {
-            "Set Category"
-        };
-
-        private string _selectedThenAction = "Set Category";
-        public string SelectedThenAction
-        {
-            get => _selectedThenAction;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _selectedThenAction, value);
-                this.RaisePropertyChanged(nameof(IsSetCategoryAction));
-            }
-        }
-
-        public bool IsSetCategoryAction => SelectedThenAction == "Set Category";
-
-        public ObservableCollection<string> AvailableCategories { get; } = new()
-        {
-            "Uncategorized",
-            "Groceries",
-            "Dining Out",
-            "Income",
-            "Utilities",
-            "Shopping",
-            "Healthcare",
-            "Transport"
-        };
-
-        private string? _selectedCategory = "Groceries";
-        public string? SelectedCategory
-        {
-            get => _selectedCategory;
-            set => this.RaiseAndSetIfChanged(ref _selectedCategory, value);
-        }
-
-        public ReactiveCommand<Unit, Unit> AddCondition { get; }
-
-        private bool _isValid;
-        public bool IsValid
-        {
-            get => _isValid;
-            private set => this.RaiseAndSetIfChanged(ref _isValid, value);
-        }
-
-        public AddRuleDraftViewModel()
-        {
-            AddCondition = ReactiveCommand.Create(AddConditionRow);
-            Reset();
-
-            // react to collection changes to maintain validity
-            Conditions.CollectionChanged += ConditionsOnCollectionChanged;
-            RecomputeIsValid();
-        }
-
-        public void Reset()
-        {
-            RuleTitle = "";
-            SelectedThenAction = "Set Category";
-            SelectedCategory = AvailableCategories.FirstOrDefault();
-
-            // detach existing handlers
-            foreach (var c in Conditions.OfType<INotifyPropertyChanged>())
-                c.PropertyChanged -= ConditionPropertyChanged;
-
-            Conditions.Clear();
-            AddConditionRow();
-            RecomputeRowFlags();
-            RecomputeIsValid();
-        }
-
-        private void ConditionsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
-            if (e.OldItems is not null)
-            {
-                foreach (var o in e.OldItems.OfType<INotifyPropertyChanged>())
-                    o.PropertyChanged -= ConditionPropertyChanged;
-            }
-
-            if (e.NewItems is not null)
-            {
-                foreach (var n in e.NewItems.OfType<INotifyPropertyChanged>())
-                    n.PropertyChanged += ConditionPropertyChanged;
-            }
-
-            RecomputeRowFlags();
-            RecomputeIsValid();
-        }
-
-        private void ConditionPropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            // Any condition's property change may affect validity.
-            RecomputeIsValid();
-        }
-
-        private void AddConditionRow()
-        {
-            var row = new ConditionRowViewModel(AvailableCategories);
-
-            row.RemoveMe = ReactiveCommand.Create(() =>
-            {
-                if (Conditions.Contains(row))
-                    Conditions.Remove(row);
-
-                if (Conditions.Count == 0)
-                    Conditions.Add(new ConditionRowViewModel(AvailableCategories));
-
-                RecomputeRowFlags();
-                RecomputeIsValid();
-            });
-
-            Conditions.Add(row);
-            RecomputeRowFlags();
-            RecomputeIsValid();
-        }
-
-        private void RecomputeRowFlags()
-        {
-            for (int i = 0; i < Conditions.Count; i++)
-                Conditions[i].ShowCombinator = i != 0;
-        }
-
-        private void RecomputeIsValid()
-        {
-            // Each condition must be valid (Description must have text, Amount must parse).
-            var allValid = Conditions.All(c => c.IsValid);
-
-            // If THEN is Set Category ensure a category is selected (defensive).
-            if (SelectedThenAction == "Set Category" && string.IsNullOrWhiteSpace(SelectedCategory))
-                allValid = false;
-
-            IsValid = allValid;
-        }
-
-        public string BuildIfText()
-        {
-            // Natural language output that mirrors UI selection
-            // Example:
-            // Description Contains 'Chipotle' AND Amount Is greater than $10.00
-            var parts = Conditions.Select((c, i) =>
-            {
-                var field = c.SelectedField;
-                var op = c.SelectedOperator?.Label ?? "";
-                var renderedValue = c.RenderValueForPreview();
-
-                var core = string.IsNullOrWhiteSpace(renderedValue)
-                    ? $"{field} {op}".Trim()
-                    : $"{field} {op} {renderedValue}".Trim();
-
-                if (i == 0) return core;
-                return $"{c.SelectedCombinator} {core}";
-            });
-
-            return string.Join(" ", parts).Trim();
-        }
-
-        public string BuildThenText()
-        {
-            // Only "Set Category" is supported by the current storage model.
-            return SelectedThenAction switch
-            {
-                "Set Category" => $"Set category to '{(SelectedCategory ?? "Uncategorized")}'",
-                _ => $"Set category to '{(SelectedCategory ?? "Uncategorized")}'"
-            };
-        }
-    }
-
-    // ============================
-    // Condition Row VM
-    // ============================
-    public sealed class ConditionRowViewModel : ViewModelBase
-    {
-        public ConditionRowViewModel(ObservableCollection<string> categories)
-        {
-            AvailableCategories = categories;
-            SelectedCategoryValue = AvailableCategories.FirstOrDefault() ?? "Uncategorized";
-
-            RefreshOperators();
-            RaiseValueVisibilityChanged();
-        }
-
-        private bool _showCombinator;
-        public bool ShowCombinator
-        {
-            get => _showCombinator;
-            set => this.RaiseAndSetIfChanged(ref _showCombinator, value);
-        }
-
-        public ObservableCollection<string> Combinators { get; } = new() { "AND", "OR" };
-
-        private string _selectedCombinator = "AND";
-        public string SelectedCombinator
-        {
-            get => _selectedCombinator;
-            set => this.RaiseAndSetIfChanged(ref _selectedCombinator, value);
-        }
-
-        public ObservableCollection<string> Fields { get; } = new()
-        {
-            "Date",
-            "Description",
-            "Amount",
-            "Category"
-        };
-
-        private string _selectedField = "Description";
-        public string SelectedField
-        {
-            get => _selectedField;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _selectedField, value);
-                RefreshOperators();
-                ResetValueForField();
-                RaiseValueVisibilityChanged();
-                this.RaisePropertyChanged(nameof(IsValid));
-            }
-        }
-
-        public ObservableCollection<OperatorOption> Operators { get; } = new();
-
-        private OperatorOption? _selectedOperator;
-        public OperatorOption? SelectedOperator
-        {
-            get => _selectedOperator;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _selectedOperator, value);
-                this.RaisePropertyChanged(nameof(IsValid));
-            }
-        }
-
-        // Text field (Description)
-        private string _textValue = "";
-        public string TextValue
-        {
-            get => _textValue;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _textValue, value);
-                this.RaisePropertyChanged(nameof(IsValid));
-            }
-        }
-
-        // Category field
-        public ObservableCollection<string> AvailableCategories { get; }
-
-        private string _selectedCategoryValue = "Uncategorized";
-        public string SelectedCategoryValue
-        {
-            get => _selectedCategoryValue;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _selectedCategoryValue, value);
-                this.RaisePropertyChanged(nameof(IsValid));
-            }
-        }
-
-        // Date field
-        private DateTime _dateValue;
-        public DateTime DateValue
-        {
-            get => _dateValue;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _dateValue, value);
-                this.RaisePropertyChanged(nameof(IsValid));
-            }
-        }
-
-        // Amount field (stored as long cents; input is dollars)
-        private string _amountDollarsText = "";
-        public string AmountDollarsText
-        {
-            get => _amountDollarsText;
-            set
-            {
-                this.RaiseAndSetIfChanged(ref _amountDollarsText, value);
-                this.RaisePropertyChanged(nameof(IsValid));
-            }
-        }
-
-        // Visibility flags used by the View
-        public bool IsTextValueVisible => SelectedField == "Description";
-        public bool IsCategoryValueVisible => SelectedField == "Category";
-        public bool IsDateValueVisible => SelectedField == "Date";
-        public bool IsAmountValueVisible => SelectedField == "Amount";
-
-        public ReactiveCommand<Unit, Unit> RemoveMe { get; set; } = ReactiveCommand.Create(() => { });
-
-        private void RaiseValueVisibilityChanged()
-        {
-            this.RaisePropertyChanged(nameof(IsTextValueVisible));
-            this.RaisePropertyChanged(nameof(IsCategoryValueVisible));
-            this.RaisePropertyChanged(nameof(IsDateValueVisible));
-            this.RaisePropertyChanged(nameof(IsAmountValueVisible));
-        }
-
-        private void RefreshOperators()
-        {
-            Operators.Clear();
-
-            if (SelectedField == "Description")
-            {
-                Operators.Add(new OperatorOption("contains", "Contains"));
-                Operators.Add(new OperatorOption("not_contains", "Does not contain"));
-                Operators.Add(new OperatorOption("starts_with", "Starts with"));
-                Operators.Add(new OperatorOption("ends_with", "Ends with"));
-            }
-            else if (SelectedField == "Category")
-            {
-                Operators.Add(new OperatorOption("is", "Is"));
-                Operators.Add(new OperatorOption("is_not", "Is not"));
-            }
-            else if (SelectedField == "Amount")
-            {
-                Operators.Add(new OperatorOption("gt", "Is greater than"));
-                Operators.Add(new OperatorOption("lt", "Is less than"));
-                Operators.Add(new OperatorOption("eq", "Is equal to"));
-            }
-            else // Date
-            {
-                Operators.Add(new OperatorOption("after", "Is after"));
-                Operators.Add(new OperatorOption("before", "Is before"));
-                Operators.Add(new OperatorOption("on", "Is on"));
-            }
-
-            SelectedOperator = Operators.FirstOrDefault();
-        }
-
-        private void ResetValueForField()
-        {
-            TextValue = "";
-            AmountDollarsText = "";
-            DateValue = DateTime.Now;
-
-            if (SelectedField == "Category" && string.IsNullOrWhiteSpace(SelectedCategoryValue))
-                SelectedCategoryValue = AvailableCategories.FirstOrDefault() ?? "Uncategorized";
-        }
-
-        public string RenderValueForPreview()
-        {
-            if (SelectedField == "Description")
-            {
-                var v = (TextValue ?? "").Trim();
-                return string.IsNullOrWhiteSpace(v) ? "" : $"'{v}'";
-            }
-
-            if (SelectedField == "Category")
-            {
-                var v = (SelectedCategoryValue ?? "").Trim();
-                return string.IsNullOrWhiteSpace(v) ? "" : $"'{v}'";
-            }
-
-            if (SelectedField == "Date")
-            {
-                if (DateValue == default) return "";
-                return DateValue.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-            }
-
-            // Amount
-            var cents = ParseAmountTextToCents(AmountDollarsText);
-            if (cents is null) return "";
-            return FormatCentsAsDollars(cents.Value);
-        }
-
-        public bool IsValid
-        {
-            get
-            {
-                if (SelectedField == "Description")
-                    return !string.IsNullOrWhiteSpace(TextValue);
-
-                if (SelectedField == "Amount")
-                    return ParseAmountTextToCents(AmountDollarsText) is not null;
-
-                if (SelectedField == "Category")
-                    return !string.IsNullOrWhiteSpace(SelectedCategoryValue);
-
-                if (SelectedField == "Date")
-                    return DateValue != default;
-
-                return true;
-            }
-        }
-
-        private static long? ParseAmountTextToCents(string? text)
-        {
-            if (string.IsNullOrWhiteSpace(text)) return null;
-
-            var cleaned = text.Trim().Replace("$", "");
-
-            if (!decimal.TryParse(cleaned, NumberStyles.Number, CultureInfo.InvariantCulture, out var dollars))
-                return null;
-
-            var cents = (long)Math.Round(dollars * 100m, MidpointRounding.AwayFromZero);
-            return cents;
-        }
-
-        private static string FormatCentsAsDollars(long cents)
-        {
-            var abs = Math.Abs(cents);
-            var dollars = abs / 100;
-            var rem = abs % 100;
-            var sign = cents < 0 ? "-" : "";
-            return $"{sign}${dollars}.{rem:00}";
-        }
     }
 
     public sealed record OperatorOption(string Key, string Label);

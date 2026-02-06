@@ -203,7 +203,7 @@
                           </Grid>
                         </StackPanel>
 
-                        <!-- Actions: Toggle + Delete + Disabled badge -->
+                        <!-- Actions: Toggle + Edit + Delete + Disabled badge -->
                         <Grid Grid.Column="3"
                               Grid.Row="0"
                               Grid.RowSpan="2"
@@ -213,6 +213,17 @@
 
                           <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
                             <ToggleSwitch IsChecked="{Binding IsEnabled}" HorizontalAlignment="Right"/>
+
+                            <Button Classes="iconButton"
+                                    BorderThickness="0"
+                                    Padding="6"
+                                    Command="{Binding DataContext.OpenEdit, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}">
+                              <svg:Svg Path="/Assets/Icons/edit.svg"
+                                       Width="16" Height="16"
+                                       Stretch="Uniform" />
+                            </Button>
+
                             <Button Classes="iconButton"
                                     BorderThickness="0"
                                     Padding="6"
@@ -522,6 +533,265 @@
                       FontWeight="SemiBold"
                       Command="{Binding SaveAddRule}">
                 Create Rule
+              </Button>
+            </StackPanel>
+
+          </Grid>
+        </Border>
+      </Grid>
+    </Border>
+
+    <!-- ========================= -->
+    <!-- EDIT RULE MODAL OVERLAY (reuses AddRuleDraft fields) -->
+    <!-- ========================= -->
+    <Border IsVisible="{Binding IsEditRuleModalOpen, FallbackValue=False}" ZIndex="55">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Color="#7A020617" Offset="0"/>
+          <GradientStop Color="#9A020A1A" Offset="1"/>
+        </LinearGradientBrush>
+      </Border.Background>
+
+      <Grid HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+        <Border Width="720"
+                CornerRadius="18"
+                Padding="22"
+                BorderThickness="1"
+                BorderBrush="#2A4F8F">
+
+          <Border.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+              <GradientStop Color="#13294F" Offset="0"/>
+              <GradientStop Color="#0D1F3D" Offset="1"/>
+            </LinearGradientBrush>
+          </Border.Background>
+
+          <Border.Effect>
+            <DropShadowEffect BlurRadius="40"
+                              Opacity="0.55"/>
+          </Border.Effect>
+
+          <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                ColumnDefinitions="*,Auto"
+                RowSpacing="14"
+                ColumnSpacing="12">
+
+            <!-- Title + close -->
+            <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+              <TextBlock Text="Edit Rule"
+                         FontSize="18"
+                         FontWeight="Bold"/>
+              <TextBlock Text="Modify IF conditions and a THEN action."
+                         Classes="muted"/>
+            </StackPanel>
+
+            <Button Grid.Row="0" Grid.Column="1"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Command="{Binding CloseEdit}">
+              <TextBlock Text="✕" Opacity="0.8"/>
+            </Button>
+
+            <!-- Rule name -->
+            <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Spacing="6">
+              <TextBlock Text="Rule Name"
+                         FontWeight="SemiBold"
+                         FontSize="12"
+                         Opacity="0.9"/>
+              <TextBox Text="{Binding AddRuleDraft.RuleTitle}"
+                       Watermark="e.g., Classify Grocery Stores"
+                       CornerRadius="10"
+                       Padding="12,10"/>
+            </StackPanel>
+
+            <!-- IF builder (shared view model) -->
+            <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                    Background="#0B1220"
+                    BorderBrush="#1C2A40"
+                    BorderThickness="1"
+                    CornerRadius="14"
+                    Padding="14">
+
+              <StackPanel Spacing="10">
+                <TextBlock Text="IF" FontWeight="Bold"/>
+
+                <ItemsControl ItemsSource="{Binding AddRuleDraft.Conditions}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border Background="#0E1A33"
+                              BorderBrush="#1C2A40"
+                              BorderThickness="1"
+                              CornerRadius="12"
+                              Padding="10"
+                              Margin="0,0,0,10">
+                        <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto"
+                              ColumnSpacing="10"
+                              VerticalAlignment="Center">
+
+                          <!-- AND/OR -->
+                          <ComboBox Grid.Column="0"
+                                    Width="86"
+                                    ItemsSource="{Binding Combinators}"
+                                    SelectedItem="{Binding SelectedCombinator}"
+                                    IsVisible="{Binding ShowCombinator}"
+                                    CornerRadius="10"
+                                    Padding="8,6"/>
+
+                          <!-- Field -->
+                          <ComboBox Grid.Column="1"
+                                    Width="140"
+                                    ItemsSource="{Binding Fields}"
+                                    SelectedItem="{Binding SelectedField}"
+                                    CornerRadius="10"
+                                    Padding="8,6"/>
+
+                          <!-- Operator -->
+                          <ComboBox Grid.Column="2"
+                                    Width="200"
+                                    ItemsSource="{Binding Operators}"
+                                    SelectedItem="{Binding SelectedOperator}"
+                                    CornerRadius="10"
+                                    Padding="8,6">
+                            <ComboBox.ItemTemplate>
+                              <DataTemplate>
+                                <TextBlock Text="{Binding Label}"/>
+                              </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                            <ComboBox.SelectionBoxItemTemplate>
+                              <DataTemplate>
+                                <TextBlock Text="{Binding Label}"/>
+                              </DataTemplate>
+                            </ComboBox.SelectionBoxItemTemplate>
+                          </ComboBox>
+
+                          <!-- SMART VALUE INPUTS (one shows) -->
+                          <Grid Grid.Column="3">
+                            <TextBox Text="{Binding TextValue}"
+                                     Watermark="Enter text…"
+                                     CornerRadius="10"
+                                     Padding="10,8"
+                                     IsVisible="{Binding IsTextValueVisible}"/>
+
+                            <ComboBox ItemsSource="{Binding AvailableCategories}"
+                                      SelectedItem="{Binding SelectedCategoryValue}"
+                                      CornerRadius="10"
+                                      Padding="10,8"
+                                      IsVisible="{Binding IsCategoryValueVisible}"/>
+
+                            <CalendarDatePicker SelectedDate="{Binding DateValue}"
+                                                HorizontalAlignment="Stretch"
+                                                VerticalAlignment="Center"
+                                                IsVisible="{Binding IsDateValueVisible}"
+                                                MaxWidth="220"
+                                                Margin="0,0,10,0"/>
+
+                            <Grid ColumnDefinitions="Auto,*"
+                                  IsVisible="{Binding IsAmountValueVisible}">
+                              <Border Grid.Column="0"
+                                      Background="#0B1220"
+                                      BorderBrush="#1C2A40"
+                                      BorderThickness="1"
+                                      CornerRadius="10"
+                                      Padding="10,8"
+                                      Margin="0,0,10,0"
+                                      VerticalAlignment="Center">
+                                <TextBlock Text="$" Opacity="0.85"/>
+                              </Border>
+                              <TextBox Grid.Column="1"
+                                       Text="{Binding AmountDollarsText}"
+                                       Watermark="0.00"
+                                       CornerRadius="10"
+                                       Padding="10,8"/>
+                            </Grid>
+                          </Grid>
+
+                          <!-- Remove -->
+                          <Button Grid.Column="4"
+                                  Classes="iconButton"
+                                  BorderThickness="0"
+                                  Padding="6"
+                                  Command="{Binding RemoveMe}">
+                            <TextBlock Text="🗑" Opacity="0.85"/>
+                          </Button>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Button Classes="secondaryWide"
+                        Command="{Binding AddRuleDraft.AddCondition}"
+                        Padding="12,8"
+                        HorizontalAlignment="Left">
+                  + Add Condition
+                </Button>
+              </StackPanel>
+            </Border>
+
+            <!-- THEN -->
+            <Border Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                    Background="#0B1220"
+                    BorderBrush="#1C2A40"
+                    BorderThickness="1"
+                    CornerRadius="14"
+                    Padding="14">
+
+              <StackPanel Spacing="10">
+                <TextBlock Text="THEN" FontWeight="Bold"/>
+
+                <Grid ColumnDefinitions="Auto,*"
+                      RowDefinitions="Auto,Auto"
+                      ColumnSpacing="12"
+                      RowSpacing="10">
+
+                  <TextBlock Grid.Row="0" Grid.Column="0"
+                             Text="Action"
+                             FontWeight="SemiBold"
+                             Opacity="0.9"
+                             VerticalAlignment="Center"/>
+
+                  <ComboBox Grid.Row="0" Grid.Column="1"
+                            ItemsSource="{Binding AddRuleDraft.ThenActions}"
+                            SelectedItem="{Binding AddRuleDraft.SelectedThenAction}"
+                            CornerRadius="10"
+                            Padding="10,8"/>
+
+                  <TextBlock Grid.Row="1" Grid.Column="0"
+                             Text="Category"
+                             FontWeight="SemiBold"
+                             Opacity="0.9"
+                             VerticalAlignment="Center"
+                             IsVisible="{Binding AddRuleDraft.IsSetCategoryAction}"/>
+
+                  <ComboBox Grid.Row="1" Grid.Column="1"
+                            ItemsSource="{Binding AddRuleDraft.AvailableCategories}"
+                            SelectedItem="{Binding AddRuleDraft.SelectedCategory}"
+                            CornerRadius="10"
+                            Padding="10,8"
+                            IsVisible="{Binding AddRuleDraft.IsSetCategoryAction}"/>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <!-- Buttons -->
+            <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="12">
+              <Button Classes="secondaryWide"
+                      Command="{Binding CloseEdit}"
+                      Padding="14,10">
+                Cancel
+              </Button>
+
+              <Button Background="{DynamicResource Blue}"
+                      Foreground="White"
+                      CornerRadius="12"
+                      Padding="16,10"
+                      FontWeight="SemiBold"
+                      Command="{Binding SaveEdit}">
+                Save Changes
               </Button>
             </StackPanel>
 
