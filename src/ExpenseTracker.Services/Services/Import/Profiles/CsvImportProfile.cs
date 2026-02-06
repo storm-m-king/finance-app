@@ -61,22 +61,13 @@ public sealed class CsvImportProfile : ICsvImportProfile
 
         var results = new List<TransactionPreviewRow>();
 
-        using var parser = new TextFieldParser(csvPath);
-        parser.TextFieldType = FieldType.Delimited;
-        parser.SetDelimiters(",");
-        parser.HasFieldsEnclosedInQuotes = false;
-
-        var header = parser.ReadFields() ?? throw new InvalidDataException($"{ProfileName}: CSV header row missing.");
+        var rows = await CsvParsingHelper.ReadRowsAsync(csvPath, ct);
+        var header = rows.FirstOrDefault()?.Keys.ToArray() ?? throw new InvalidDataException($"{ProfileName}: CSV header row missing.");
         ValidateHeaderExact(header);
 
-        while (!parser.EndOfData)
+        foreach (var row in rows)
         {
             ct.ThrowIfCancellationRequested();
-
-            var fields = parser.ReadFields();
-            if (fields is null || fields.Length == 0) continue;
-
-            var row = ToRowDictionary(header, fields);
 
             var postedDate = ParseDate(row[DateHeader], ProfileName);
             var rawDescription = Require(row[DescriptionHeader], $"{ProfileName}: {DescriptionHeader}");
@@ -113,7 +104,7 @@ public sealed class CsvImportProfile : ICsvImportProfile
         return results;
     }
 
-    private string BuildNormalizedDescription(Dictionary<string, string> row)
+    private string BuildNormalizedDescription(IDictionary<string, string> row)
     {
         var parts = _normalizedHeaders.Select(h => row[h]);
         return string.Join(_profile.NormalizedDescriptionDelimiter, parts);
