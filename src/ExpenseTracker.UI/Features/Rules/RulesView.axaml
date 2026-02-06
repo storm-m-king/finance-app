@@ -76,7 +76,7 @@
               <StackPanel Grid.Column="1" Spacing="6">
                 <TextBlock Text="Rule Execution Order" FontSize="15" FontWeight="Bold" Foreground="#9acdf4"/>
                 <TextBlock Text="Rules are executed in order from top to bottom. Drag to reorder rules. The first matching rule will be applied to each transaction."
-                           FontSize="15" Classes="muted" Foreground="#c4c4c4"/>
+                           FontSize="15" Classes="muted" Foreground="#c4c4c4" TextWrapping="Wrap"/>
               </StackPanel>
             </Grid>
           </Border>
@@ -201,7 +201,7 @@
                           </Grid>
                         </StackPanel>
 
-                        <!-- Toggle + Disabled badge -->
+                        <!-- Actions: Toggle + Delete + Disabled badge -->
                         <Grid Grid.Column="3"
                               Grid.Row="0"
                               Grid.RowSpan="2"
@@ -209,9 +209,18 @@
                               VerticalAlignment="Center"
                               HorizontalAlignment="Right">
 
-                          <ToggleSwitch Grid.Row="0"
-                                        IsChecked="{Binding IsEnabled}"
-                                        HorizontalAlignment="Right"/>
+                          <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                            <ToggleSwitch IsChecked="{Binding IsEnabled}" HorizontalAlignment="Right"/>
+                            <Button Classes="iconButton"
+                                    BorderThickness="0"
+                                    Padding="6"
+                                    Command="{Binding DataContext.OpenDelete, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}">
+                              <svg:Svg Path="/Assets/Icons/trash.svg"
+                                       Width="16" Height="16"
+                                       Stretch="Uniform" />
+                            </Button>
+                          </StackPanel>
 
                           <Border Grid.Row="1"
                                   Margin="0,10,0,0"
@@ -255,7 +264,7 @@
     <!-- ========================= -->
     <!-- ADD RULE MODAL OVERLAY -->
     <!-- ========================= -->
-    <Border IsVisible="{Binding IsAddRuleModalOpen}" ZIndex="50">
+    <Border IsVisible="{Binding IsAddRuleModalOpen, FallbackValue=False}" ZIndex="50">
       <Border.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
           <GradientStop Color="#7A020617" Offset="0"/>
@@ -265,7 +274,6 @@
 
       <Grid HorizontalAlignment="Center"
             VerticalAlignment="Center">
-
         <Border Width="720"
                 CornerRadius="18"
                 Padding="22"
@@ -397,10 +405,11 @@
 
                             <!-- Date picker -->
                             <CalendarDatePicker SelectedDate="{Binding DateValue}"
-                                                Width="220"
-                                                HorizontalAlignment="Left"
+                                                HorizontalAlignment="Stretch"
                                                 VerticalAlignment="Center"
-                                                IsVisible="{Binding IsDateValueVisible}"/>
+                                                IsVisible="{Binding IsDateValueVisible}"
+                                                MaxWidth="220"
+                                                Margin="0,0,10,0"/>
 
 
 
@@ -514,6 +523,126 @@
                 Create Rule
               </Button>
             </StackPanel>
+
+          </Grid>
+        </Border>
+      </Grid>
+    </Border>
+
+    <!-- ========================= -->
+    <!-- DELETE CONFIRM MODAL -->
+    <!-- ========================= -->
+    <Border IsVisible="{Binding IsDeleteModalOpen, FallbackValue=False}" ZIndex="60">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Color="#7A020617" Offset="0"/>
+          <GradientStop Color="#9A020A1A" Offset="1"/>
+        </LinearGradientBrush>
+      </Border.Background>
+
+      <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Border Width="520"
+                CornerRadius="18"
+                Padding="22"
+                BorderThickness="1"
+                BorderBrush="#2A4F8F">
+          <Border.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+              <GradientStop Color="#13294F" Offset="0"/>
+              <GradientStop Color="#0D1F3D" Offset="1"/>
+            </LinearGradientBrush>
+          </Border.Background>
+
+          <Border.Effect>
+            <DropShadowEffect BlurRadius="40" Opacity="0.55"/>
+          </Border.Effect>
+
+          <Grid RowDefinitions="Auto,Auto,Auto"
+                ColumnDefinitions="Auto,*,Auto"
+                RowSpacing="16"
+                ColumnSpacing="14">
+
+            <!-- Left: danger badge -->
+            <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"
+                    Width="44" Height="44"
+                    CornerRadius="22"
+                    Background="#2A1620"
+                    BorderBrush="#5A2436"
+                    BorderThickness="1"
+                    VerticalAlignment="Top">
+              <TextBlock Text="!"
+                         FontSize="18"
+                         FontWeight="Bold"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"
+                         Foreground="#FF6B8A"/>
+            </Border>
+
+            <!-- Title + subtitle -->
+            <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4">
+              <TextBlock Text="Delete Rule"
+                         FontSize="20"
+                         FontWeight="Bold"/>
+            </StackPanel>
+
+            <!-- Close -->
+            <Button Grid.Row="0" Grid.Column="2"
+                    Classes="iconButton"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Command="{Binding CloseModal}">
+              <TextBlock Text="✕" Opacity="0.8"/>
+            </Button>
+
+            <!-- Body -->
+            <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Spacing="12">
+
+              <!-- Main question -->
+              <TextBlock Text="{Binding DeletePromptLine1}"
+                         FontSize="15"
+                         FontWeight="SemiBold"/>
+
+              <!-- Consequence panel -->
+              <Border Background="#101C33"
+                      BorderBrush="#2B3B5A"
+                      BorderThickness="1"
+                      CornerRadius="14"
+                      Padding="14">
+                <TextBlock Text="{Binding DeletePromptLine2}"
+                           Classes="muted"/>
+              </Border>
+
+            </StackPanel>
+
+            <!-- Buttons -->
+            <Grid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2"
+                  ColumnDefinitions="*,Auto,Auto"
+                  ColumnSpacing="12"
+                  VerticalAlignment="Center">
+
+              <!-- Spacer -->
+              <Border Grid.Column="0"/>
+
+              <Button Grid.Column="1"
+                      Classes="secondaryWide"
+                      Command="{Binding CloseModal}"
+                      Padding="16,10"
+                      CornerRadius="12">
+                Cancel
+              </Button>
+
+              <!-- Danger action -->
+              <Button Grid.Column="2"
+                      Background="#B42318"
+                      Foreground="White"
+                      CornerRadius="12"
+                      Padding="18,10"
+                      FontWeight="SemiBold"
+                      Command="{Binding ConfirmDelete}">
+                Delete
+              </Button>
+
+            </Grid>
 
           </Grid>
         </Border>

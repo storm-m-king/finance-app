@@ -11,6 +11,7 @@ namespace ExpenseTracker.UI.Features.Rules;
 public partial class RulesView : UserControl
 {
     private RuleRowViewModel? _dragging;
+    private int _lastSnappedIndex = -1;
 
     public RulesView()
     {
@@ -35,6 +36,9 @@ public partial class RulesView : UserControl
         // Start drag
         _dragging = rule;
         _dragging.IsDragging = true;
+
+        // Remember current snapped index so we can restore if user leaves drag area
+        _lastSnappedIndex = vm.IndexOf(rule);
 
         // Clear hints initially
         vm.ClearAllDragHints();
@@ -62,6 +66,7 @@ public partial class RulesView : UserControl
 
         _dragging.IsDragging = false;
         _dragging = null;
+        _lastSnappedIndex = -1;
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
@@ -111,17 +116,23 @@ public partial class RulesView : UserControl
             }
         }
 
-        // If not directly over any card, we treat it as top/bottom insertion.
+        // If not directly over any card, reuse the last snapped index instead of defaulting to bottom.
         int targetIndex;
         if (overVm != null)
         {
             var overIndex = vm.IndexOf(overVm);
             targetIndex = inTopHalf ? overIndex : overIndex + 1;
+
+            // Update remembered snapped index
+            _lastSnappedIndex = targetIndex;
         }
         else
         {
-            // above first or below last
-            targetIndex = (y <= 0) ? 0 : vm.Rules.Count;
+            // If we haven't recorded a snapped index yet, fallback to current dragging index.
+            if (_lastSnappedIndex < 0)
+                _lastSnappedIndex = vm.IndexOf(_dragging);
+
+            targetIndex = _lastSnappedIndex;
         }
 
         // Snap-to-slot reorder (move dragged item to targetIndex-1 logic handled inside)

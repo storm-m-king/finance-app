@@ -27,6 +27,41 @@ public sealed class RulesViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> CloseAddRule { get; }
     public ReactiveCommand<Unit, Unit> SaveAddRule { get; }
 
+    // -----------------------
+    // Delete modal state + commands (minimal, focused on delete flow)
+    // -----------------------
+    private bool _isDeleteModalOpen;
+    public bool IsDeleteModalOpen
+    {
+        get => _isDeleteModalOpen;
+        private set => this.RaiseAndSetIfChanged(ref _isDeleteModalOpen, value);
+    }
+
+    private RuleRowViewModel? _deleteTarget;
+    public RuleRowViewModel? DeleteTarget
+    {
+        get => _deleteTarget;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _deleteTarget, value);
+            // Keep prompt text reactive
+            this.RaisePropertyChanged(nameof(DeletePromptLine1));
+            this.RaisePropertyChanged(nameof(DeletePromptLine2));
+        }
+    }
+
+    public string DeletePromptLine1 =>
+        DeleteTarget is null
+            ? "Are you sure you want to delete this rule?"
+            : $"Are you sure you want to delete “{DeleteTarget.Title}”?.";
+
+    public string DeletePromptLine2 =>
+        "This action cannot be undone.";
+
+    public ReactiveCommand<RuleRowViewModel, Unit> OpenDelete { get; private set; }
+    public ReactiveCommand<Unit, Unit> CloseModal { get; private set; }
+    public ReactiveCommand<Unit, Unit> ConfirmDelete { get; private set; }
+
     public RulesViewModel()
     {
         Rules.Add(new RuleRowViewModel(
@@ -80,6 +115,32 @@ public sealed class RulesViewModel : ViewModelBase
         });
 
         RerunAllRules = ReactiveCommand.Create(() => { /* later: call service */ });
+
+        // ---- Delete command implementations (minimal, consistent with Categories pattern) ----
+        OpenDelete = ReactiveCommand.Create<RuleRowViewModel>(rule =>
+        {
+            if (rule is null) return;
+
+            DeleteTarget = rule;
+            IsDeleteModalOpen = true;
+        });
+
+        CloseModal = ReactiveCommand.Create(() =>
+        {
+            IsDeleteModalOpen = false;
+            DeleteTarget = null;
+        });
+
+        ConfirmDelete = ReactiveCommand.Create(() =>
+        {
+            if (DeleteTarget is null) return;
+
+            Rules.Remove(DeleteTarget);
+            Reindex();
+
+            DeleteTarget = null;
+            IsDeleteModalOpen = false;
+        });
 
         Reindex();
     }
