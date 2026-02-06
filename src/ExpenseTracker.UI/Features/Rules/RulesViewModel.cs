@@ -1,5 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Reactive;
@@ -64,29 +66,126 @@ public sealed class RulesViewModel : ViewModelBase
 
     public RulesViewModel()
     {
-        Rules.Add(new RuleRowViewModel(
-            "Classify Grocery Stores",
-            "Description contains 'Trader Joe' OR 'Whole Foods' OR 'Safeway'",
-            "Set category to 'Groceries'",
-            isEnabled: true));
+        // Seed sample rules using the same rendering logic as AddRuleDraft.BuildIfText/BuildThenText.
+        // This ensures uniform text rendering and avoids constructing combined text inside a single condition.
 
-        Rules.Add(new RuleRowViewModel(
-            "Classify Fast Food",
-            "Description contains 'Chipotle' OR 'McDonalds' OR 'Taco Bell'",
-            "Set category to 'Dining Out'",
-            isEnabled: true));
+        // Grocery rule
+        var groceryDraft = new AddRuleDraftViewModel();
+        groceryDraft.RuleTitle = "Classify Grocery Stores";
+        groceryDraft.Conditions.Clear();
+        var g1 = new ConditionRowViewModel(groceryDraft.AvailableCategories)
+        {
+            SelectedField = "Description",
+            SelectedOperator = null
+        };
+        g1.SelectedOperator = g1.Operators.FirstOrDefault(o => o.Key == "contains");
+        g1.TextValue = "Trader Joe";
+        groceryDraft.Conditions.Add(g1);
 
-        Rules.Add(new RuleRowViewModel(
-            "Mark Paycheck",
-            "Description contains 'Payroll' AND Amount > 1000",
-            "Set category to 'Income'",
-            isEnabled: true));
+        var g2 = new ConditionRowViewModel(groceryDraft.AvailableCategories)
+        {
+            ShowCombinator = true,
+            SelectedCombinator = "OR",
+            SelectedField = "Description"
+        };
+        g2.SelectedOperator = g2.Operators.FirstOrDefault(o => o.Key == "contains");
+        g2.TextValue = "Whole Foods";
+        groceryDraft.Conditions.Add(g2);
 
-        Rules.Add(new RuleRowViewModel(
-            "Auto-approve Small Transactions",
-            "Amount < 10",
-            "Mark as Reviewed",
-            isEnabled: false));
+        var g3 = new ConditionRowViewModel(groceryDraft.AvailableCategories)
+        {
+            ShowCombinator = true,
+            SelectedCombinator = "OR",
+            SelectedField = "Description"
+        };
+        g3.SelectedOperator = g3.Operators.FirstOrDefault(o => o.Key == "contains");
+        g3.TextValue = "Safeway";
+        groceryDraft.Conditions.Add(g3);
+
+        var groceryIf = groceryDraft.BuildIfText();
+        var groceryThen = "Set category to 'Groceries'";
+        Rules.Add(new RuleRowViewModel("Classify Grocery Stores", groceryIf, groceryThen, isEnabled: true));
+
+        // Fast food
+        var fastDraft = new AddRuleDraftViewModel();
+        fastDraft.RuleTitle = "Classify Fast Food";
+        fastDraft.Conditions.Clear();
+
+        var f1 = new ConditionRowViewModel(fastDraft.AvailableCategories)
+        {
+            SelectedField = "Description"
+        };
+        f1.SelectedOperator = f1.Operators.FirstOrDefault(o => o.Key == "contains");
+        f1.TextValue = "Chipotle";
+        fastDraft.Conditions.Add(f1);
+
+        var f2 = new ConditionRowViewModel(fastDraft.AvailableCategories)
+        {
+            ShowCombinator = true,
+            SelectedCombinator = "OR",
+            SelectedField = "Description"
+        };
+        f2.SelectedOperator = f2.Operators.FirstOrDefault(o => o.Key == "contains");
+        f2.TextValue = "McDonalds";
+        fastDraft.Conditions.Add(f2);
+
+        var f3 = new ConditionRowViewModel(fastDraft.AvailableCategories)
+        {
+            ShowCombinator = true,
+            SelectedCombinator = "OR",
+            SelectedField = "Description"
+        };
+        f3.SelectedOperator = f3.Operators.FirstOrDefault(o => o.Key == "contains");
+        f3.TextValue = "Taco Bell";
+        fastDraft.Conditions.Add(f3);
+
+        var fastIf = fastDraft.BuildIfText();
+        var fastThen = "Set category to 'Dining Out'";
+        Rules.Add(new RuleRowViewModel("Classify Fast Food", fastIf, fastThen, isEnabled: true));
+
+        // Mark Paycheck: Description contains 'Payroll' AND Amount > 1000
+        var payDraft = new AddRuleDraftViewModel();
+        payDraft.RuleTitle = "Mark Paycheck";
+        payDraft.Conditions.Clear();
+
+        var p1 = new ConditionRowViewModel(payDraft.AvailableCategories)
+        {
+            SelectedField = "Description"
+        };
+        p1.SelectedOperator = p1.Operators.FirstOrDefault(o => o.Key == "contains");
+        p1.TextValue = "Payroll";
+        payDraft.Conditions.Add(p1);
+
+        var p2 = new ConditionRowViewModel(payDraft.AvailableCategories)
+        {
+            ShowCombinator = true,
+            SelectedCombinator = "AND",
+            SelectedField = "Amount"
+        };
+        p2.SelectedOperator = p2.Operators.FirstOrDefault(o => o.Key == "gt");
+        p2.AmountDollarsText = "1000";
+        payDraft.Conditions.Add(p2);
+
+        var payIf = payDraft.BuildIfText();
+        var payThen = "Set category to 'Income'";
+        Rules.Add(new RuleRowViewModel("Mark Paycheck", payIf, payThen, isEnabled: true));
+
+        // Auto-approve small transactions (Amount < 10)
+        var smallDraft = new AddRuleDraftViewModel();
+        smallDraft.RuleTitle = "Auto-approve Small Transactions";
+        smallDraft.Conditions.Clear();
+
+        var s1 = new ConditionRowViewModel(smallDraft.AvailableCategories)
+        {
+            SelectedField = "Amount"
+        };
+        s1.SelectedOperator = s1.Operators.FirstOrDefault(o => o.Key == "lt");
+        s1.AmountDollarsText = "10";
+        smallDraft.Conditions.Add(s1);
+
+        var smallIf = smallDraft.BuildIfText();
+        var smallThen = "Set category to 'Uncategorized'"; // changed from 'Mark as Reviewed'
+        Rules.Add(new RuleRowViewModel("Auto-approve Small Transactions", smallIf, smallThen, isEnabled: false));
 
         AddRule = ReactiveCommand.Create(() =>
         {
@@ -99,20 +198,24 @@ public sealed class RulesViewModel : ViewModelBase
             IsAddRuleModalOpen = false;
         });
 
-        SaveAddRule = ReactiveCommand.Create(() =>
-        {
-            var title = string.IsNullOrWhiteSpace(AddRuleDraft.RuleTitle)
-                ? "New Rule"
-                : AddRuleDraft.RuleTitle.Trim();
+        // SaveAddRule now enabled only when AddRuleDraft.IsValid == true
+        SaveAddRule = ReactiveCommand.Create(
+            () =>
+            {
+                var title = string.IsNullOrWhiteSpace(AddRuleDraft.RuleTitle)
+                    ? "New Rule"
+                    : AddRuleDraft.RuleTitle.Trim();
 
-            var ifText = AddRuleDraft.BuildIfText();
-            var thenText = AddRuleDraft.BuildThenText();
+                var ifText = AddRuleDraft.BuildIfText();
+                var thenText = AddRuleDraft.BuildThenText();
 
-            Rules.Add(new RuleRowViewModel(title, ifText, thenText, isEnabled: true));
-            Reindex();
+                Rules.Add(new RuleRowViewModel(title, ifText, thenText, isEnabled: true));
+                Reindex();
 
-            IsAddRuleModalOpen = false;
-        });
+                IsAddRuleModalOpen = false;
+            },
+            AddRuleDraft.WhenAnyValue(d => d.IsValid)
+        );
 
         RerunAllRules = ReactiveCommand.Create(() => { /* later: call service */ });
 
@@ -183,6 +286,31 @@ public sealed class RulesViewModel : ViewModelBase
             Rules[i].Order = i + 1;
     }
 
+    // Helper to clone a ConditionRowViewModel (so rule gets its own instances)
+    private static ConditionRowViewModel CloneCondition(ConditionRowViewModel src, ObservableCollection<string> categories)
+    {
+        var dest = new ConditionRowViewModel(categories)
+        {
+            ShowCombinator = src.ShowCombinator,
+            SelectedCombinator = src.SelectedCombinator,
+            SelectedField = src.SelectedField,
+            TextValue = src.TextValue,
+            SelectedCategoryValue = src.SelectedCategoryValue,
+            DateValue = src.DateValue,
+            AmountDollarsText = src.AmountDollarsText
+        };
+
+        // Attempt to pick the same operator by key
+        if (src.SelectedOperator is not null)
+        {
+            var match = dest.Operators.FirstOrDefault(o => o.Key == src.SelectedOperator.Key);
+            if (match is not null)
+                dest.SelectedOperator = match;
+        }
+
+        return dest;
+    }
+
     // ============================
     // Add Rule Draft VM
     // ============================
@@ -200,9 +328,7 @@ public sealed class RulesViewModel : ViewModelBase
         // THEN
         public ObservableCollection<string> ThenActions { get; } = new()
         {
-            "Set Category",
-            "Mark as Reviewed",
-            "Mark as NeedsReview"
+            "Set Category"
         };
 
         private string _selectedThenAction = "Set Category";
@@ -239,10 +365,21 @@ public sealed class RulesViewModel : ViewModelBase
 
         public ReactiveCommand<Unit, Unit> AddCondition { get; }
 
+        private bool _isValid;
+        public bool IsValid
+        {
+            get => _isValid;
+            private set => this.RaiseAndSetIfChanged(ref _isValid, value);
+        }
+
         public AddRuleDraftViewModel()
         {
             AddCondition = ReactiveCommand.Create(AddConditionRow);
             Reset();
+
+            // react to collection changes to maintain validity
+            Conditions.CollectionChanged += ConditionsOnCollectionChanged;
+            RecomputeIsValid();
         }
 
         public void Reset()
@@ -251,9 +388,38 @@ public sealed class RulesViewModel : ViewModelBase
             SelectedThenAction = "Set Category";
             SelectedCategory = AvailableCategories.FirstOrDefault();
 
+            // detach existing handlers
+            foreach (var c in Conditions.OfType<INotifyPropertyChanged>())
+                c.PropertyChanged -= ConditionPropertyChanged;
+
             Conditions.Clear();
             AddConditionRow();
             RecomputeRowFlags();
+            RecomputeIsValid();
+        }
+
+        private void ConditionsOnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            if (e.OldItems is not null)
+            {
+                foreach (var o in e.OldItems.OfType<INotifyPropertyChanged>())
+                    o.PropertyChanged -= ConditionPropertyChanged;
+            }
+
+            if (e.NewItems is not null)
+            {
+                foreach (var n in e.NewItems.OfType<INotifyPropertyChanged>())
+                    n.PropertyChanged += ConditionPropertyChanged;
+            }
+
+            RecomputeRowFlags();
+            RecomputeIsValid();
+        }
+
+        private void ConditionPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            // Any condition's property change may affect validity.
+            RecomputeIsValid();
         }
 
         private void AddConditionRow()
@@ -269,16 +435,30 @@ public sealed class RulesViewModel : ViewModelBase
                     Conditions.Add(new ConditionRowViewModel(AvailableCategories));
 
                 RecomputeRowFlags();
+                RecomputeIsValid();
             });
 
             Conditions.Add(row);
             RecomputeRowFlags();
+            RecomputeIsValid();
         }
 
         private void RecomputeRowFlags()
         {
             for (int i = 0; i < Conditions.Count; i++)
                 Conditions[i].ShowCombinator = i != 0;
+        }
+
+        private void RecomputeIsValid()
+        {
+            // Each condition must be valid (Description must have text, Amount must parse).
+            var allValid = Conditions.All(c => c.IsValid);
+
+            // If THEN is Set Category ensure a category is selected (defensive).
+            if (SelectedThenAction == "Set Category" && string.IsNullOrWhiteSpace(SelectedCategory))
+                allValid = false;
+
+            IsValid = allValid;
         }
 
         public string BuildIfText()
@@ -305,12 +485,11 @@ public sealed class RulesViewModel : ViewModelBase
 
         public string BuildThenText()
         {
+            // Only "Set Category" is supported by the current storage model.
             return SelectedThenAction switch
             {
                 "Set Category" => $"Set category to '{(SelectedCategory ?? "Uncategorized")}'",
-                "Mark as Reviewed" => "Mark as Reviewed",
-                "Mark as NeedsReview" => "Mark as NeedsReview",
-                _ => "Mark as Reviewed"
+                _ => $"Set category to '{(SelectedCategory ?? "Uncategorized")}'"
             };
         }
     }
@@ -363,6 +542,7 @@ public sealed class RulesViewModel : ViewModelBase
                 RefreshOperators();
                 ResetValueForField();
                 RaiseValueVisibilityChanged();
+                this.RaisePropertyChanged(nameof(IsValid));
             }
         }
 
@@ -372,7 +552,11 @@ public sealed class RulesViewModel : ViewModelBase
         public OperatorOption? SelectedOperator
         {
             get => _selectedOperator;
-            set => this.RaiseAndSetIfChanged(ref _selectedOperator, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _selectedOperator, value);
+                this.RaisePropertyChanged(nameof(IsValid));
+            }
         }
 
         // Text field (Description)
@@ -380,7 +564,11 @@ public sealed class RulesViewModel : ViewModelBase
         public string TextValue
         {
             get => _textValue;
-            set => this.RaiseAndSetIfChanged(ref _textValue, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _textValue, value);
+                this.RaisePropertyChanged(nameof(IsValid));
+            }
         }
 
         // Category field
@@ -390,7 +578,11 @@ public sealed class RulesViewModel : ViewModelBase
         public string SelectedCategoryValue
         {
             get => _selectedCategoryValue;
-            set => this.RaiseAndSetIfChanged(ref _selectedCategoryValue, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _selectedCategoryValue, value);
+                this.RaisePropertyChanged(nameof(IsValid));
+            }
         }
 
         // Date field
@@ -398,7 +590,11 @@ public sealed class RulesViewModel : ViewModelBase
         public DateTime DateValue
         {
             get => _dateValue;
-            set => this.RaiseAndSetIfChanged(ref _dateValue, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _dateValue, value);
+                this.RaisePropertyChanged(nameof(IsValid));
+            }
         }
 
         // Amount field (stored as long cents; input is dollars)
@@ -406,7 +602,11 @@ public sealed class RulesViewModel : ViewModelBase
         public string AmountDollarsText
         {
             get => _amountDollarsText;
-            set => this.RaiseAndSetIfChanged(ref _amountDollarsText, value);
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _amountDollarsText, value);
+                this.RaisePropertyChanged(nameof(IsValid));
+            }
         }
 
         // Visibility flags used by the View
@@ -491,6 +691,26 @@ public sealed class RulesViewModel : ViewModelBase
             var cents = ParseAmountTextToCents(AmountDollarsText);
             if (cents is null) return "";
             return FormatCentsAsDollars(cents.Value);
+        }
+
+        public bool IsValid
+        {
+            get
+            {
+                if (SelectedField == "Description")
+                    return !string.IsNullOrWhiteSpace(TextValue);
+
+                if (SelectedField == "Amount")
+                    return ParseAmountTextToCents(AmountDollarsText) is not null;
+
+                if (SelectedField == "Category")
+                    return !string.IsNullOrWhiteSpace(SelectedCategoryValue);
+
+                if (SelectedField == "Date")
+                    return DateValue != default;
+
+                return true;
+            }
         }
 
         private static long? ParseAmountTextToCents(string? text)

@@ -75,7 +75,7 @@
 
               <StackPanel Grid.Column="1" Spacing="6">
                 <TextBlock Text="Rule Execution Order" FontSize="15" FontWeight="Bold" Foreground="#9acdf4"/>
-                <TextBlock Text="Rules are executed in order from top to bottom. Drag to reorder rules. The first matching rule will be applied to each transaction."
+                <TextBlock Text="Rules are executed in order from top to bottom. Reorder rules by clicking the ⋮⋮ symbol on the rule and dragging. The first matching rule will be applied to each transaction."
                            FontSize="15" Classes="muted" Foreground="#c4c4c4" TextWrapping="Wrap"/>
               </StackPanel>
             </Grid>
@@ -125,6 +125,7 @@
                                 PointerPressed="DragHandle_OnPointerPressed"
                                 PointerReleased="DragHandle_OnPointerReleased">
                           <TextBlock Text="⋮⋮"
+									 FontSize="20"
                                      Opacity="0.65"
                                      HorizontalAlignment="Center"
                                      VerticalAlignment="Center"/>
