@@ -10,6 +10,7 @@ using ExpenseTracker.Services.Contracts;
 using ExpenseTracker.Services.Services.FingerPrint;
 using ExpenseTracker.Services.Services.Import;
 using ExpenseTracker.Services.Services.Import.Profiles;
+using ExpenseTracker.UI.Features.Categories;
 using ExpenseTracker.UI.Features.Import.ImportView;
 using ExpenseTracker.UI.Features.Import.PreviewView;
 using ExpenseTracker.UI.Shell;
@@ -115,7 +116,7 @@ internal static class Program
         
         // Frontend View Models
         services.AddTransient<MainWindow>();
-        
+
         services.AddTransient<Func<Action<string, string>, ImportViewModel>>(sp =>
             onContinue => new ImportViewModel(
                 importService: sp.GetRequiredService<IImportService>(),
@@ -147,7 +148,14 @@ internal static class Program
                     profile,
                     onBack,
                     onImport));
-        
+
+        services.AddTransient<Func<CategoriesViewModel>>(sp =>
+            () => new CategoriesViewModel(
+                sp.GetRequiredService<IAppLogger>(),
+                sp.GetRequiredService<ICategoryService>()
+            )
+        );
+
         // Enable validation to fail fast on DI misconfiguration.
         var options = new ServiceProviderOptions
         {

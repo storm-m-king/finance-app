@@ -1,6 +1,6 @@
 using System.Data;
 using Dapper;
-using ExpenseTracker.Infrastructure.Logging;
+using ExpenseTracker.Domain.Category;
 using ExpenseTracker.Services.Contracts;
 
 namespace ExpenseTracker.Infrastructure.Persistence.Seed;
@@ -11,8 +11,9 @@ namespace ExpenseTracker.Infrastructure.Persistence.Seed;
 public sealed class SystemSeeder
 {
     // System category IDs (stable, well-known)
-    private static readonly Guid UncategorizedId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+    private static readonly Guid UncategorizedExpenseId = Guid.Parse("00000000-0000-0000-0000-000000000001");
     private static readonly Guid TransferId      = Guid.Parse("00000000-0000-0000-0000-000000000002");
+    private static readonly Guid UncategorizedIncomeId = Guid.Parse("00000000-0000-0000-0000-000000000003");
 
     // Seeded account IDs (stable, so imports/rules can rely on them)
     private static readonly Guid AmexAccountId = Guid.Parse("10000000-0000-0000-0000-000000000001");
@@ -48,13 +49,14 @@ public sealed class SystemSeeder
     {
         return conn.Execute(
             """
-            INSERT OR IGNORE INTO categories (id, name, is_system, is_user_editable)
-            VALUES (@Id, @Name, 1, 0);
+            INSERT OR IGNORE INTO categories (id, name, is_system, is_user_editable, type)
+            VALUES (@Id, @Name, 1, 0, @Type);
             """,
             new[]
             {
-                new { Id = UncategorizedId.ToString(), Name = "Uncategorized" },
-                new { Id = TransferId.ToString(),      Name = "Transfer" }
+                new { Id = UncategorizedExpenseId.ToString(), Name = "Uncategorized", Type = $"{CategoryType.Expense}" },
+                new { Id = TransferId.ToString(),      Name = "Transfer", Type = $"{CategoryType.Transfer}" },
+                new { Id = UncategorizedIncomeId.ToString(), Name = "Uncategorized", Type = $"{CategoryType.Income}" }
             });
     }
 

@@ -1,15 +1,15 @@
-using System;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Reactive;
 using ReactiveUI;
 using ExpenseTracker.UI.ViewModels;
+using ExpenseTracker.Services.Contracts;
+using System.Reactive.Concurrency;
 
 namespace ExpenseTracker.UI.Features.Categories;
 
 public sealed class CategoriesViewModel : ViewModelBase
 {
-    // ===== Mocked sections =====
+    // ===== Sections (backed by DB) =====
     public ObservableCollection<CategoryCardViewModel> IncomeCategories { get; } = new();
     public ObservableCollection<CategoryCardViewModel> ExpenseCategories { get; } = new();
     public ObservableCollection<CategoryCardViewModel> TransferCategories { get; } = new();
@@ -98,21 +98,14 @@ public sealed class CategoriesViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> SaveUpsert { get; }
     public ReactiveCommand<Unit, Unit> ConfirmDelete { get; }
 
-    public CategoriesViewModel()
+    // ===== Services =====
+    private readonly IAppLogger _appLogger;
+    private readonly ICategoryService _categoryService;
+
+    public CategoriesViewModel(IAppLogger appLogger, ICategoryService categoryService)
     {
-        // ---- Mock data (replace later with service calls) ----
-        IncomeCategories.Add(new CategoryCardViewModel("Income", 24, isLocked: true, type: "Income"));
-
-        ExpenseCategories.Add(new CategoryCardViewModel("Groceries", 45, isLocked: false, type: "Expense"));
-        ExpenseCategories.Add(new CategoryCardViewModel("Dining Out", 32, isLocked: false, type: "Expense"));
-        ExpenseCategories.Add(new CategoryCardViewModel("Transportation", 18, isLocked: false, type: "Expense"));
-        ExpenseCategories.Add(new CategoryCardViewModel("Housing", 12, isLocked: true, type: "Expense"));
-        ExpenseCategories.Add(new CategoryCardViewModel("Healthcare", 8, isLocked: false, type: "Expense"));
-        ExpenseCategories.Add(new CategoryCardViewModel("Shopping", 56, isLocked: false, type: "Expense"));
-        ExpenseCategories.Add(new CategoryCardViewModel("Utilities", 15, isLocked: false, type: "Expense"));
-        ExpenseCategories.Add(new CategoryCardViewModel("Entertainment", 28, isLocked: false, type: "Expense"));
-
-        TransferCategories.Add(new CategoryCardViewModel("Transfer", 10, isLocked: true, type: "Transfer"));
+        _appLogger = appLogger ?? throw new ArgumentNullException(nameof(appLogger));
+        _categoryService = categoryService ?? throw new ArgumentNullException(nameof(categoryService));
 
         // ---- Commands ----
         OpenCreate = ReactiveCommand.Create(() =>
@@ -168,7 +161,7 @@ public sealed class CategoriesViewModel : ViewModelBase
             RaiseModalComputed();
         });
 
-        SaveUpsert = ReactiveCommand.Create(() =>
+        SaveUpsert = ReactiveCommand.CreateFromTask(async () =>
         {
             var trimmed = (CategoryName ?? "").Trim();
             if (string.IsNullOrWhiteSpace(trimmed))
@@ -177,42 +170,57 @@ public sealed class CategoriesViewModel : ViewModelBase
             if (!CategoryTypes.Contains(SelectedType))
                 SelectedType = "Expense";
 
-            if (IsEditing && EditingCategory is not null)
+            try
             {
-                // Update in-place (mock behavior)
-                EditingCategory.Name = trimmed;
-                EditingCategory.Type = SelectedType;
-
-                // If type changed, move across sections
-                MoveIfTypeChanged(EditingCategory);
+                if (IsEditing && EditingCategory is not null)
+                {
+                    // Update via service
+                    await _categoryService.UpdateUserCategoryAsync(
+                        EditingCategory.Id,
+                        trimmed,
+                        SelectedType,
+                        CancellationToken.None).ConfigureAwait(false);
+                }
+                else
+                {
+                    // Create via service
+                    await _categoryService.CreateUserCategoryAsync(
+                        trimmed,
+                        SelectedType,
+                        CancellationToken.None).ConfigureAwait(false);
+                }
             }
-            else
+            catch(Exception ex)
             {
-                // Create (mock behavior)
-                var newCard = new CategoryCardViewModel(
-                    name: trimmed,
-                    transactionCount: 0,
-                    isLocked: false,
-                    type: SelectedType);
-
-                AddToSection(newCard);
+                // TODO: surface errors to UI (snackbar/dialog) - swallow for now to avoid crash
+                _appLogger.Error($"[CategoriesViewModel] Failed to upsert category '{trimmed}' of type '{SelectedType}'. Exception: {ex}");
             }
+
+            // Refresh displayed categories from DB
+            await LoadCategoriesAsync().ConfigureAwait(false);
 
             IsUpsertModalOpen = false;
             RaiseModalComputed();
         });
 
-        ConfirmDelete = ReactiveCommand.Create(() =>
+        ConfirmDelete = ReactiveCommand.CreateFromTask(async () =>
         {
             if (DeleteTarget is null)
                 return;
 
-            RemoveFromSection(DeleteTarget);
+            try
+            {
+                await _categoryService.DeleteUserCategoryAsync(DeleteTarget.Id, CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // TODO: surfacing errors to UI. swallow for now.
+                _appLogger.Error($"[CategoriesViewModel] Failed to delete category id {DeleteTarget.Id}. Exception: {ex}");
+            }
 
-            // In the real backend, this is where you'd:
-            // 1) Move its transactions to Uncategorized
-            // 2) Delete the category
-            // For now: just remove it.
+            // Refresh displayed categories from DB
+            await LoadCategoriesAsync().ConfigureAwait(false);
 
             DeleteTarget = null;
             IsDeleteModalOpen = false;
@@ -222,6 +230,45 @@ public sealed class CategoriesViewModel : ViewModelBase
         // Keep IsAnyModalOpen reactive for bindings that depend on it
         this.WhenAnyValue(x => x.IsUpsertModalOpen, x => x.IsDeleteModalOpen)
             .Subscribe(_ => this.RaisePropertyChanged(nameof(IsAnyModalOpen)));
+
+        // Initial load (fire-and-forget)
+        _ = LoadCategoriesAsync();
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        IReadOnlyList<Domain.Category.Category> categories;
+        try
+        {
+            categories = await _categoryService.GetAllCategoriesAsync(CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+        catch(Exception ex)
+        {
+            // If the load fails, keep UI empty. TODO: surface error to UI.
+            _appLogger.Error($"[CategoriesViewModel] Failed to load categories from service with exception: {ex}.");
+            categories = Array.Empty<Domain.Category.Category>();
+        }
+
+        // Map and update collections on the UI/main thread.
+        RxApp.MainThreadScheduler.Schedule(() =>
+        {
+            IncomeCategories.Clear();
+            ExpenseCategories.Clear();
+            TransferCategories.Clear();
+
+            foreach (var cat in categories.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase))
+            {
+                var vm = new CategoryCardViewModel(
+                    id: cat.Id,
+                    name: cat.Name,
+                    transactionCount: 0, // transaction counts not provided by service yet
+                    isLocked: cat.IsSystemCategory,
+                    type: cat.Type.ToString());
+
+                AddToSection(vm);
+            }
+        });
     }
 
     private void RaiseModalComputed()
@@ -267,6 +314,8 @@ public sealed class CategoriesViewModel : ViewModelBase
 
 public sealed class CategoryCardViewModel : ViewModelBase
 {
+    public Guid Id { get; }
+
     private string _name;
     public string Name
     {
@@ -297,8 +346,9 @@ public sealed class CategoryCardViewModel : ViewModelBase
     public bool IsLocked { get; }
     public bool CanEdit => !IsLocked;
 
-    public CategoryCardViewModel(string name, int transactionCount, bool isLocked, string type)
+    public CategoryCardViewModel(Guid id, string name, int transactionCount, bool isLocked, string type)
     {
+        Id = id;
         _name = name;
         _transactionCount = transactionCount;
         _type = type;

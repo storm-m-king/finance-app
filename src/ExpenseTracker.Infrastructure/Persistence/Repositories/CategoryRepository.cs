@@ -132,23 +132,27 @@ public sealed class CategoryRepository : ICategoryRepository
             id,
             name,
             is_system,
+            is_user_editable,
             type
           )
           VALUES (
             @id,
             @name,
             @is_system,
+            @is_user_editable,
             @type
           )
           ON CONFLICT(id) DO UPDATE SET
             name = excluded.name,
             is_system = excluded.is_system,
+            is_user_editable = excluded.is_user_editable,
             type = excluded.type;
          ";
 
         AddParam(cmd, "@id", category.Id.ToString());
         AddParam(cmd, "@name", category.Name);
         AddParam(cmd, "@is_system", category.IsSystemCategory ? 1 : 0);
+        AddParam(cmd, "@is_user_editable", category.IsUserEditable ? 1 : 0);
         AddParam(cmd, "@type", category.Type.ToString());
 
         await ExecuteNonQueryAsync(cmd, ct).ConfigureAwait(false);
