@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Reactive;
 using ReactiveUI;
@@ -6,6 +5,7 @@ using ExpenseTracker.UI.ViewModels;
 using ExpenseTracker.UI.Features.Dashboard;
 using ExpenseTracker.UI.Features.Import.ImportView;
 using ExpenseTracker.UI.Features.Import.PreviewView;
+using ExpenseTracker.UI.Features.Categories;
 
 namespace ExpenseTracker.UI.Shell;
 
@@ -16,6 +16,9 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     // ✅ Factory for step 2 (Preview) VM (DI gives it ImportService, repos, etc.)
     private readonly Func<string, string, Action, Action<int>, PreviewImportViewModel> _previewVmFactory;
+
+    // Add factory for CategoriesViewModel
+    private readonly Func<CategoriesViewModel> _categoriesVmFactory;
 
     private ViewModelBase _current = new DashboardViewModel();
 
@@ -82,10 +85,12 @@ public sealed class MainWindowViewModel : ViewModelBase
     // ✅ DI constructor
     public MainWindowViewModel(
         Func<Action<string, string>, ImportViewModel> importVmFactory,
-        Func<string, string, Action, Action<int>, PreviewImportViewModel> previewVmFactory)
+        Func<string, string, Action, Action<int>, PreviewImportViewModel> previewVmFactory,
+        Func<CategoriesViewModel> categoriesVmFactory)
     {
         _importVmFactory = importVmFactory;
         _previewVmFactory = previewVmFactory;
+        _categoriesVmFactory = categoriesVmFactory;
 
         GoDashboard = ReactiveCommand.Create(() =>
         {
@@ -108,7 +113,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         GoCategories = ReactiveCommand.Create(() =>
         {
             SelectNav(categories: true);
-            Current = new ExpenseTracker.UI.Features.Categories.CategoriesViewModel();
+            Current = _categoriesVmFactory();
         });
 
         GoRules = ReactiveCommand.Create(() =>
