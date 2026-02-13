@@ -119,7 +119,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         GoRules = ReactiveCommand.Create(() =>
         {
             SelectNav(rules: true);
-            Current = new PlaceholderViewModel("Rules");
+            Current = new ExpenseTracker.UI.Features.Rules.RulesViewModel();
         });
 
         GoAccounts = ReactiveCommand.Create(() =>
