@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reactive;
+using Avalonia.Threading;
 using ReactiveUI;
 using ExpenseTracker.UI.ViewModels;
 using ExpenseTracker.UI.Features.Dashboard;
@@ -22,8 +23,37 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private ViewModelBase _current = new DashboardViewModel();
 
-    public string CurrentMonthText =>
-        DateTime.Now.ToString("MMMM yyyy", CultureInfo.InvariantCulture);
+    private string _currentTimeText = DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture);
+    public string CurrentTimeText
+    {
+        get => _currentTimeText;
+        private set => this.RaiseAndSetIfChanged(ref _currentTimeText, value);
+    }
+
+    private string _currentDateText = FormatDate(DateTime.Now);
+    public string CurrentDateText
+    {
+        get => _currentDateText;
+        private set => this.RaiseAndSetIfChanged(ref _currentDateText, value);
+    }
+
+    private bool _isDaytime = IsDaytimeNow();
+    public bool IsDaytime
+    {
+        get => _isDaytime;
+        private set => this.RaiseAndSetIfChanged(ref _isDaytime, value);
+    }
+
+    private static string FormatDate(DateTime dt) =>
+        dt.ToString("dddd dd", CultureInfo.InvariantCulture)
+        + " - "
+        + dt.ToString("MMM yyyy", CultureInfo.InvariantCulture);
+
+    private static bool IsDaytimeNow()
+    {
+        var hour = DateTime.Now.Hour;
+        return hour >= 6 && hour < 18;
+    }
 
     public ViewModelBase Current
     {
@@ -131,6 +161,16 @@ public sealed class MainWindowViewModel : ViewModelBase
         // ✅ Default selection
         SelectNav(dashboard: true);
         Current = new DashboardViewModel();
+
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        timer.Tick += (_, _) =>
+        {
+            var now = DateTime.Now;
+            CurrentTimeText = now.ToString("HH:mm", CultureInfo.InvariantCulture);
+            CurrentDateText = FormatDate(now);
+            IsDaytime = IsDaytimeNow();
+        };
+        timer.Start();
     }
 
     private void ShowImportUpload()

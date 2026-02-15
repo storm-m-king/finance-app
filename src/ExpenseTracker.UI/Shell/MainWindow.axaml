@@ -74,7 +74,10 @@
                         Margin="0,6,0,6"/>
 
                 <!-- Nav -->
-                <StackPanel Grid.Row="2" Spacing="10">
+                <ScrollViewer Grid.Row="2"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="10">
 
                     <ToggleButton Classes="nav"
                                   IsChecked="{Binding IsDashboardSelected}"
@@ -143,19 +146,51 @@
                     </ToggleButton>
 
                 </StackPanel>
+                </ScrollViewer>
 
-                <!-- Current Month (fixed card at bottom) -->
+                <!-- Today Widget (fixed card at bottom) -->
                 <Border Grid.Row="3"
                         Classes="card"
                         Padding="16"
                         Margin="0,12,0,0">
-                    <StackPanel Spacing="6">
-                        <TextBlock Text="Current Month"
+                    <StackPanel Spacing="8">
+
+                        <!-- Title row: clock icon + TODAY -->
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <svg:Svg Width="14" Height="14"
+                                     Path="/Assets/Icons/clock.svg"
+                                     Stretch="Uniform"/>
+                            <TextBlock Text="TODAY"
+                                       FontSize="12"
+                                       FontWeight="Bold"
+                                       Foreground="White"
+                                       FontFamily="Segoe UI, Helvetica Neue, Arial"
+                                       LetterSpacing="1.5"/>
+                        </StackPanel>
+
+                        <!-- Time row: large time + sun/moon icon -->
+                        <StackPanel Orientation="Horizontal" Spacing="10"
+                                    VerticalAlignment="Center">
+                            <TextBlock Text="{Binding CurrentTimeText}"
+                                       FontSize="48"
+                                       FontWeight="Bold"
+                                       FontFamily="Segoe UI, Helvetica Neue, Arial"
+                                       Foreground="White"/>
+                            <svg:Svg Width="24" Height="24"
+                                     Path="/Assets/Icons/sun.svg"
+                                     Stretch="Uniform"
+                                     IsVisible="{Binding IsDaytime}"/>
+                            <svg:Svg Width="24" Height="24"
+                                     Path="/Assets/Icons/moon.svg"
+                                     Stretch="Uniform"
+                                     IsVisible="{Binding !IsDaytime}"/>
+                        </StackPanel>
+
+                        <!-- Date row -->
+                        <TextBlock Text="{Binding CurrentDateText}"
                                    Classes="muted"
                                    FontSize="12"/>
-                        <TextBlock Text="{Binding CurrentMonthText}"
-                                   FontSize="20"
-                                   FontWeight="Bold"/>
+
                     </StackPanel>
                 </Border>
 
