@@ -7,5 +7,7 @@ public sealed record TransactionPreviewRow(
     string RawDescription,
     long AmountCents,
     string NormalizedDescription,
-    string Fingerprint
+    string Fingerprint,
+    Guid? CategoryId = null,
+    string? CategoryName = null
 );

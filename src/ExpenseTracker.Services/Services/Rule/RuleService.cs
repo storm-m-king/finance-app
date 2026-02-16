@@ -120,4 +120,21 @@ public sealed class RuleService : IRuleService
             await _repository.AddOrUpdateAsync(reordered, ct).ConfigureAwait(false);
         }
     }
+
+    /// <inheritdoc />
+    public async Task<Guid?> EvaluateAsync(string candidateText, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(candidateText))
+            return null;
+
+        var enabledRules = await _repository.GetEnabledAsync(ct).ConfigureAwait(false);
+
+        foreach (var rule in enabledRules)
+        {
+            if (rule.Matches(candidateText))
+                return rule.CategoryId;
+        }
+
+        return null;
+    }
 }

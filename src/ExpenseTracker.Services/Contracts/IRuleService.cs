@@ -98,4 +98,13 @@ public interface IRuleService
     /// <param name="orderedIds">Rule identifiers in the desired priority order (index = priority).</param>
     /// <param name="ct">Cancellation token.</param>
     Task ReorderAsync(IReadOnlyList<Guid> orderedIds, CancellationToken ct = default);
+
+    /// <summary>
+    /// Evaluates all enabled rules against a candidate text (e.g., transaction description)
+    /// in priority order. Returns the CategoryId of the first matching rule, or null if none match.
+    /// </summary>
+    /// <param name="candidateText">The text to evaluate (typically a transaction description).</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>The CategoryId of the first matching rule, or null if no rules match.</returns>
+    Task<Guid?> EvaluateAsync(string candidateText, CancellationToken ct = default);
 }
