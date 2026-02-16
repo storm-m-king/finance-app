@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS accounts (
 -- =========================
     CREATE TABLE IF NOT EXISTS rules (
     id          TEXT    NOT NULL PRIMARY KEY,
+    name        TEXT    NOT NULL DEFAULT '',
     match_type  INTEGER NOT NULL, -- Contains (v1)
     match_text  TEXT    NOT NULL,
     category_id TEXT    NOT NULL,

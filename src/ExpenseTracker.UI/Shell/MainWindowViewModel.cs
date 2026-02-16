@@ -7,6 +7,7 @@ using ExpenseTracker.UI.Features.Dashboard;
 using ExpenseTracker.UI.Features.Import.ImportView;
 using ExpenseTracker.UI.Features.Import.PreviewView;
 using ExpenseTracker.UI.Features.Categories;
+using ExpenseTracker.UI.Features.Rules;
 
 namespace ExpenseTracker.UI.Shell;
 
@@ -20,6 +21,9 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     // Add factory for CategoriesViewModel
     private readonly Func<CategoriesViewModel> _categoriesVmFactory;
+
+    // Add factory for RulesViewModel
+    private readonly Func<RulesViewModel> _rulesVmFactory;
 
     private ViewModelBase _current = new DashboardViewModel();
 
@@ -116,11 +120,13 @@ public sealed class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel(
         Func<Action<string, string>, ImportViewModel> importVmFactory,
         Func<string, string, Action, Action<int>, PreviewImportViewModel> previewVmFactory,
-        Func<CategoriesViewModel> categoriesVmFactory)
+        Func<CategoriesViewModel> categoriesVmFactory,
+        Func<RulesViewModel> rulesVmFactory)
     {
         _importVmFactory = importVmFactory;
         _previewVmFactory = previewVmFactory;
         _categoriesVmFactory = categoriesVmFactory;
+        _rulesVmFactory = rulesVmFactory;
 
         GoDashboard = ReactiveCommand.Create(() =>
         {
@@ -149,7 +155,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         GoRules = ReactiveCommand.Create(() =>
         {
             SelectNav(rules: true);
-            Current = new ExpenseTracker.UI.Features.Rules.RulesViewModel();
+            Current = _rulesVmFactory();
         });
 
         GoAccounts = ReactiveCommand.Create(() =>

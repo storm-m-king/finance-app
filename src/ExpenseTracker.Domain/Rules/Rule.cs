@@ -22,6 +22,9 @@ public sealed class Rule : IRule
     /// <summary>Unique identifier for this rule.</summary>
     public Guid Id { get; }
 
+    /// <summary>User-defined display name for this rule.</summary>
+    public string Name { get; }
+
     /// <summary>The condition that determines whether the rule applies.</summary>
     public IRuleCondition Condition { get; }
 
@@ -45,6 +48,7 @@ public sealed class Rule : IRule
     public Rule
     (
         Guid id,
+        string name,
         IRuleCondition condition,
         Guid categoryId,
         int priority,
@@ -63,6 +67,7 @@ public sealed class Rule : IRule
         Condition = condition ?? throw new ArgumentNullException(nameof(condition));
 
         Id = id;
+        Name = name ?? "";
         CategoryId = categoryId;
         Priority = priority;
         Enabled = enabled;
@@ -83,11 +88,11 @@ public sealed class Rule : IRule
     /// Returns an enabled version of this rule.
     /// </summary>
     public IRule Enable()
-        => Enabled ? this : new Rule(Id, Condition, CategoryId, Priority, enabled: true);
+        => Enabled ? this : new Rule(Id, Name, Condition, CategoryId, Priority, enabled: true);
 
     /// <summary>
     /// Returns a disabled version of this rule.
     /// </summary>
     public IRule Disable()
-        => !Enabled ? this : new Rule(Id, Condition, CategoryId, Priority, enabled: false);
+        => !Enabled ? this : new Rule(Id, Name, Condition, CategoryId, Priority, enabled: false);
 }

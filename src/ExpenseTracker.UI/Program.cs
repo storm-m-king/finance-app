@@ -13,6 +13,7 @@ using ExpenseTracker.Services.Services.Import.Profiles;
 using ExpenseTracker.UI.Features.Categories;
 using ExpenseTracker.UI.Features.Import.ImportView;
 using ExpenseTracker.UI.Features.Import.PreviewView;
+using ExpenseTracker.UI.Features.Rules;
 using ExpenseTracker.UI.Shell;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -103,11 +104,13 @@ internal static class Program
         services.AddSingleton<IImportService, ImportService>();
         services.AddSingleton<IFingerprintService, Sha256FingerprintService>();
         services.AddSingleton<ICategoryService, CategoryService>();
+        services.AddSingleton<IRuleService, RuleService>();
         
         // Repositories
         services.AddSingleton<IAccountRepository, AccountRepository>();
         services.AddSingleton<IImportProfileRepository, ImportProfileRepository>();
         services.AddSingleton<ICategoryRepository, CategoryRepository>();
+        services.AddSingleton<IRuleRepository, RuleRepository>();
         
 
         // Short-lived startup helpers used during application initialization.
@@ -153,6 +156,14 @@ internal static class Program
             () => new CategoriesViewModel(
                 sp.GetRequiredService<IAppLogger>(),
                 sp.GetRequiredService<ICategoryService>()
+            )
+        );
+
+        services.AddTransient<Func<RulesViewModel>>(sp =>
+            () => new RulesViewModel(
+                sp.GetRequiredService<IRuleService>(),
+                sp.GetRequiredService<ICategoryService>(),
+                sp.GetRequiredService<IAppLogger>()
             )
         );
 

@@ -24,6 +24,11 @@ public interface IRule
     Guid Id { get; }
 
     /// <summary>
+    /// Gets the user-defined display name for this rule.
+    /// </summary>
+    string Name { get; }
+
+    /// <summary>
     /// Gets the condition that determines whether this rule applies.
     /// </summary>
     /// <remarks>
