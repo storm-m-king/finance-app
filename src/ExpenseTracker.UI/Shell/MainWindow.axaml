@@ -8,6 +8,7 @@
         xmlns:importComplete="using:ExpenseTracker.UI.Features.Import.CompleteView"
         xmlns:categories="clr-namespace:ExpenseTracker.UI.Features.Categories"
         xmlns:rules="using:ExpenseTracker.UI.Features.Rules"
+        xmlns:txns="using:ExpenseTracker.UI.Features.Transactions"
         x:Class="ExpenseTracker.UI.Shell.MainWindow"
         Width="1200" Height="750"
         Title="Expense Tracker">
@@ -45,6 +46,10 @@
         
         <DataTemplate DataType="{x:Type rules:RulesViewModel}">
             <rules:RulesView/>
+        </DataTemplate>
+
+        <DataTemplate DataType="{x:Type txns:TransactionsViewModel}">
+            <txns:TransactionsView/>
         </DataTemplate>
 
     </Window.DataTemplates>

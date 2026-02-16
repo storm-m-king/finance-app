@@ -8,6 +8,7 @@ using ExpenseTracker.UI.Features.Import.ImportView;
 using ExpenseTracker.UI.Features.Import.PreviewView;
 using ExpenseTracker.UI.Features.Categories;
 using ExpenseTracker.UI.Features.Rules;
+using ExpenseTracker.UI.Features.Transactions;
 
 namespace ExpenseTracker.UI.Shell;
 
@@ -137,7 +138,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         GoTransactions = ReactiveCommand.Create(() =>
         {
             SelectNav(transactions: true);
-            Current = new PlaceholderViewModel("Transactions");
+            Current = new TransactionsViewModel();
         });
 
         GoImport = ReactiveCommand.Create(() =>
