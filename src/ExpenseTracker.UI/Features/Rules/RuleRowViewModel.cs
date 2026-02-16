@@ -7,7 +7,7 @@ namespace ExpenseTracker.UI.Features.Rules;
 
 public sealed class RuleRowViewModel : ViewModelBase
 {
-    public Guid Id { get; } = Guid.NewGuid();
+    public Guid Id { get; }
 
     public bool IsDisabled => !IsEnabled;
 
@@ -80,8 +80,9 @@ public sealed class RuleRowViewModel : ViewModelBase
         ShowDropLineBelow = false;
     }
 
-    public RuleRowViewModel(string title, string ifText, string thenText, bool isEnabled)
+    public RuleRowViewModel(string title, string ifText, string thenText, bool isEnabled, Guid? id = null)
     {
+        Id = id ?? Guid.NewGuid();
         Title = title;
         IfText = ifText;
         ThenText = thenText;

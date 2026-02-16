@@ -14,7 +14,8 @@ public sealed class DbInitializer
     public DbInitializer(ISqliteConnectionFactory factory) => _factory = factory;
 
     /// <summary>
-    /// Executes the schema.sql to set up the sqlite tables if they don't exist.
+    /// Executes the schema.sql to set up the sqlite tables if they don't exist,
+    /// then applies any pending migrations.
     /// </summary>
     public void Initialize()
     {
@@ -22,5 +23,21 @@ public sealed class DbInitializer
         var schemaPath = AppPaths.GetSchemaSqlPath();
         var sql = File.ReadAllText(schemaPath); 
         conn.Execute(sql);
+
+        ApplyMigrations(conn);
+    }
+
+    /// <summary>
+    /// Applies incremental schema migrations for columns added after initial release.
+    /// Each migration is idempotent (checks before altering).
+    /// </summary>
+    private static void ApplyMigrations(System.Data.IDbConnection conn)
+    {
+        // Migration: add 'name' column to rules table (added for rule title persistence)
+        var columns = conn.Query<string>("SELECT name FROM pragma_table_info('rules');").ToList();
+        if (!columns.Contains("name", StringComparer.OrdinalIgnoreCase))
+        {
+            conn.Execute("ALTER TABLE rules ADD COLUMN name TEXT NOT NULL DEFAULT '';");
+        }
     }
 }

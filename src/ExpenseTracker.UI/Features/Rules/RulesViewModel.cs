@@ -1,14 +1,21 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Reactive;
+using System.Reactive.Linq;
 using System.Text.RegularExpressions;
 using ReactiveUI;
+using ExpenseTracker.Domain.Rules;
+using ExpenseTracker.Services.Contracts;
 using ExpenseTracker.UI.ViewModels;
 
 namespace ExpenseTracker.UI.Features.Rules;
 
 public sealed class RulesViewModel : ViewModelBase
 {
+    private readonly IRuleService _ruleService;
+    private readonly ICategoryService _categoryService;
+    private readonly IAppLogger _logger;
+
     public ObservableCollection<RuleRowViewModel> Rules { get; } = new();
 
     public ReactiveCommand<Unit, Unit> AddRule { get; }
@@ -43,7 +50,7 @@ public sealed class RulesViewModel : ViewModelBase
     public string DeletePromptLine1 =>
         _deleteTarget is null
             ? "Are you sure you want to delete this rule?"
-            : $"Are you sure you want to delete “{_deleteTarget.Title}”?	";
+            : $"Are you sure you want to delete '{_deleteTarget.Title}'?";
 
     public string DeletePromptLine2 => "This action cannot be undone.";
 
@@ -58,66 +65,36 @@ public sealed class RulesViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> CloseModal { get; private set; }
     public ReactiveCommand<Unit, Unit> ConfirmDelete { get; private set; }
 
-    public RulesViewModel()
+    public RulesViewModel(IRuleService ruleService, ICategoryService categoryService, IAppLogger logger)
     {
-        // Seed a few example rules (preview text produced by drafts for consistency)
-        var draft = new AddRuleDraftViewModel();
-        draft.RuleTitle = "Classify Grocery Stores";
-        draft.Conditions.Clear();
-        var g1 = new ConditionRowViewModel(draft.AvailableCategories) { SelectedField = "Description", TextValue = "Trader Joe" };
-        g1.SelectedOperator = g1.Operators.FirstOrDefault(o => o.Key == "contains");
-        draft.Conditions.Add(g1);
-        var g2 = new ConditionRowViewModel(draft.AvailableCategories) { ShowCombinator = true, SelectedCombinator = "OR", SelectedField = "Description", TextValue = "Whole Foods" };
-        g2.SelectedOperator = g2.Operators.FirstOrDefault(o => o.Key == "contains");
-        draft.Conditions.Add(g2);
-        var g3 = new ConditionRowViewModel(draft.AvailableCategories) { ShowCombinator = true, SelectedCombinator = "OR", SelectedField = "Description", TextValue = "Safeway" };
-        g3.SelectedOperator = g3.Operators.FirstOrDefault(o => o.Key == "contains");
-        draft.Conditions.Add(g3);
-        Rules.Add(new RuleRowViewModel("Classify Grocery Stores", draft.BuildIfText(), "Set category to 'Groceries'", isEnabled: true));
-
-        // Fast food
-        draft.Reset();
-        draft.RuleTitle = "Classify Fast Food";
-        draft.Conditions.Clear();
-        var f1 = new ConditionRowViewModel(draft.AvailableCategories) { SelectedField = "Description", TextValue = "Chipotle" };
-        f1.SelectedOperator = f1.Operators.FirstOrDefault(o => o.Key == "contains");
-        draft.Conditions.Add(f1);
-        var f2 = new ConditionRowViewModel(draft.AvailableCategories) { ShowCombinator = true, SelectedCombinator = "OR", SelectedField = "Description", TextValue = "McDonalds" };
-        f2.SelectedOperator = f2.Operators.FirstOrDefault(o => o.Key == "contains");
-        draft.Conditions.Add(f2);
-        var f3 = new ConditionRowViewModel(draft.AvailableCategories) { ShowCombinator = true, SelectedCombinator = "OR", SelectedField = "Description", TextValue = "Taco Bell" };
-        f3.SelectedOperator = f3.Operators.FirstOrDefault(o => o.Key == "contains");
-        draft.Conditions.Add(f3);
-        Rules.Add(new RuleRowViewModel("Classify Fast Food", draft.BuildIfText(), "Set category to 'Dining Out'", isEnabled: true));
-
-        // Paycheck
-        draft.Reset();
-        draft.RuleTitle = "Mark Paycheck";
-        draft.Conditions.Clear();
-        var p1 = new ConditionRowViewModel(draft.AvailableCategories) { SelectedField = "Description", TextValue = "Payroll" };
-        p1.SelectedOperator = p1.Operators.FirstOrDefault(o => o.Key == "contains");
-        draft.Conditions.Add(p1);
-        var p2 = new ConditionRowViewModel(draft.AvailableCategories) { ShowCombinator = true, SelectedCombinator = "AND", SelectedField = "Amount", AmountDollarsText = "1000" };
-        p2.SelectedOperator = p2.Operators.FirstOrDefault(o => o.Key == "gt");
-        draft.Conditions.Add(p2);
-        Rules.Add(new RuleRowViewModel("Mark Paycheck", draft.BuildIfText(), "Set category to 'Income'", isEnabled: true));
+        _ruleService = ruleService ?? throw new ArgumentNullException(nameof(ruleService));
+        _categoryService = categoryService ?? throw new ArgumentNullException(nameof(categoryService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         AddRule = ReactiveCommand.Create(() =>
         {
             AddRuleDraft.Reset();
+            LoadCategoriesIntoDraft();
             IsAddRuleModalOpen = true;
         });
 
         CloseAddRule = ReactiveCommand.Create(() => { IsAddRuleModalOpen = false; });
 
-        SaveAddRule = ReactiveCommand.Create(
-            () =>
+        SaveAddRule = ReactiveCommand.CreateFromTask(
+            async () =>
             {
                 var title = string.IsNullOrWhiteSpace(AddRuleDraft.RuleTitle) ? "New Rule" : AddRuleDraft.RuleTitle.Trim();
                 var ifText = AddRuleDraft.BuildIfText();
                 var thenText = AddRuleDraft.BuildThenText();
 
-                Rules.Add(new RuleRowViewModel(title, ifText, thenText, isEnabled: true));
+                var condition = BuildConditionFromDraft();
+                var categoryId = await ResolveCategoryIdAsync(AddRuleDraft.SelectedCategory);
+                var priority = Rules.Count;
+
+                var rule = await _ruleService.CreateRuleAsync(title, condition, categoryId, priority);
+                var ruleRow = new RuleRowViewModel(title, ifText, thenText, isEnabled: true, id: rule.Id);
+                SubscribeToEnabledToggle(ruleRow);
+                Rules.Add(ruleRow);
                 Reindex();
                 IsAddRuleModalOpen = false;
             },
@@ -132,18 +109,27 @@ public sealed class RulesViewModel : ViewModelBase
             IsEditRuleModalOpen = false;
             _editTarget = null;
         });
-        SaveEdit = ReactiveCommand.Create(
-            () =>
+        SaveEdit = ReactiveCommand.CreateFromTask(
+            async () =>
             {
                 if (_editTarget is null) return;
                 var title = string.IsNullOrWhiteSpace(AddRuleDraft.RuleTitle) ? "New Rule" : AddRuleDraft.RuleTitle.Trim();
                 var ifText = AddRuleDraft.BuildIfText();
                 var thenText = AddRuleDraft.BuildThenText();
 
+                var condition = BuildConditionFromDraft();
+                var categoryId = await ResolveCategoryIdAsync(AddRuleDraft.SelectedCategory);
                 var idx = Rules.IndexOf(_editTarget);
                 var enabled = _editTarget.IsEnabled;
+
+                await _ruleService.UpdateRuleAsync(_editTarget.Id, title, condition, categoryId, idx >= 0 ? idx : 0, enabled);
+
                 if (idx >= 0)
-                    Rules[idx] = new RuleRowViewModel(title, ifText, thenText, enabled);
+                {
+                    var updatedRow = new RuleRowViewModel(title, ifText, thenText, enabled, id: _editTarget.Id);
+                    SubscribeToEnabledToggle(updatedRow);
+                    Rules[idx] = updatedRow;
+                }
 
                 _editTarget = null;
                 IsEditRuleModalOpen = false;
@@ -166,17 +152,20 @@ public sealed class RulesViewModel : ViewModelBase
             _delete_target_clear();
         });
 
-        ConfirmDelete = ReactiveCommand.Create(() =>
+        ConfirmDelete = ReactiveCommand.CreateFromTask(async () =>
         {
             if (_deleteTarget is null) return;
+            await _ruleService.DeleteRuleAsync(_deleteTarget.Id);
             Rules.Remove(_deleteTarget);
             Reindex();
-            // Close modal and clear target so UI doesn't remain focused on an empty selection
             IsDeleteModalOpen = false;
             _delete_target_clear();
         });
 
         Reindex();
+
+        // Load persisted rules from database
+        _ = LoadRulesAsync();
     }
 
     private void _delete_target_clear()
@@ -191,6 +180,7 @@ public sealed class RulesViewModel : ViewModelBase
 
         // Reset draft
         AddRuleDraft.Reset();
+        LoadCategoriesIntoDraft();
         AddRuleDraft.RuleTitle = rule.Title ?? "";
 
         // THEN: parse Set category to 'X' (exact format produced by BuildThenText)
@@ -201,8 +191,12 @@ public sealed class RulesViewModel : ViewModelBase
             if (m.Success)
             {
                 var cat = m.Groups[1].Value;
-                if (AddRuleDraft.AvailableCategories.Contains(cat))
-                    AddRuleDraft.SelectedCategory = cat;
+                // Categories are displayed as "Name (Type)" â€” match by name prefix
+                var match = AddRuleDraft.AvailableCategories.FirstOrDefault(c =>
+                    c.StartsWith(cat + " (", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(c, cat, StringComparison.OrdinalIgnoreCase));
+                if (match is not null)
+                    AddRuleDraft.SelectedCategory = match;
             }
             AddRuleDraft.SelectedThenAction = "Set Category";
         }
@@ -319,6 +313,7 @@ public sealed class RulesViewModel : ViewModelBase
         Rules.RemoveAt(from);
         Rules.Insert(adjusted, dragging);
         Reindex();
+        PersistReorderAsync();
     }
 
     public void ClearAllDragHints()
@@ -331,6 +326,235 @@ public sealed class RulesViewModel : ViewModelBase
     {
         for (int i = 0; i < Rules.Count; i++)
             Rules[i].Order = i + 1;
+    }
+
+    // =====================================================
+    // Persistence helpers
+    // =====================================================
+
+    /// <summary>
+    /// Loads rules from the database into the Rules collection.
+    /// Called once during initialization.
+    /// </summary>
+    public async Task LoadRulesAsync()
+    {
+        try
+        {
+            var categories = await _categoryService.GetAllCategoriesAsync();
+            var categoryLookup = categories.ToDictionary(c => c.Id, c => c.Name);
+
+            var rules = await _ruleService.GetAllRulesAsync();
+            Rules.Clear();
+
+            foreach (var rule in rules.OrderBy(r => r.Priority))
+            {
+                var categoryName = categoryLookup.TryGetValue(rule.CategoryId, out var name)
+                    ? name
+                    : "Uncategorized";
+
+                var ifText = BuildIfTextFromCondition(rule.Condition);
+                var thenText = $"Set category to '{categoryName}'";
+
+                var ruleRow = new RuleRowViewModel(
+                    title: rule.Name,
+                    ifText: ifText,
+                    thenText: thenText,
+                    isEnabled: rule.Enabled,
+                    id: rule.Id);
+
+                SubscribeToEnabledToggle(ruleRow);
+                Rules.Add(ruleRow);
+            }
+
+            Reindex();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to load rules from database.", ex);
+        }
+    }
+
+    private void SubscribeToEnabledToggle(RuleRowViewModel ruleRow)
+    {
+        ruleRow.WhenAnyValue(x => x.IsEnabled)
+            .Skip(1) // skip initial value
+            .Subscribe(async enabled =>
+            {
+                try
+                {
+                    await _ruleService.SetEnabledAsync(ruleRow.Id, enabled);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Error($"Failed to persist enabled state for rule '{ruleRow.Id}'.", ex);
+                }
+            });
+    }
+
+    private async void PersistReorderAsync()
+    {
+        try
+        {
+            var orderedIds = Rules.Select(r => r.Id).ToList();
+            await _ruleService.ReorderAsync(orderedIds);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to persist rule reorder.", ex);
+        }
+    }
+
+    private void LoadCategoriesIntoDraft()
+    {
+        try
+        {
+            var categories = _categoryService.GetAllCategoriesAsync().GetAwaiter().GetResult();
+            AddRuleDraft.AvailableCategories.Clear();
+            foreach (var cat in categories)
+                AddRuleDraft.AvailableCategories.Add($"{cat.Name} ({cat.Type})");
+
+            if (AddRuleDraft.AvailableCategories.Count > 0)
+                AddRuleDraft.SelectedCategory = AddRuleDraft.AvailableCategories.First();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Failed to load categories for rule draft.", ex);
+        }
+    }
+
+    private async Task<Guid> ResolveCategoryIdAsync(string? categoryDisplay)
+    {
+        var categories = await _categoryService.GetAllCategoriesAsync();
+
+        if (!string.IsNullOrWhiteSpace(categoryDisplay))
+        {
+            // Parse "Name (Type)" format back to just the name
+            var categoryName = categoryDisplay;
+            var parenIdx = categoryDisplay.LastIndexOf(" (", StringComparison.Ordinal);
+            if (parenIdx > 0)
+                categoryName = categoryDisplay[..parenIdx];
+
+            var match = categories.FirstOrDefault(c =>
+                string.Equals(c.Name, categoryName, StringComparison.OrdinalIgnoreCase));
+
+            if (match is not null)
+                return match.Id;
+        }
+
+        return categories.First(c =>
+            string.Equals(c.Name, "Uncategorized", StringComparison.OrdinalIgnoreCase)).Id;
+    }
+
+    /// <summary>
+    /// Builds a domain <see cref="IRuleCondition"/> from the current draft conditions.
+    /// </summary>
+    private IRuleCondition BuildConditionFromDraft()
+    {
+        var conditions = new List<IRuleCondition>();
+
+        foreach (var row in AddRuleDraft.Conditions)
+        {
+            var condition = BuildSingleCondition(row);
+            if (condition is not null)
+                conditions.Add(condition);
+        }
+
+        if (conditions.Count == 0)
+            return new ContainsCondition("*");
+
+        if (conditions.Count == 1)
+            return conditions[0];
+
+        // Determine combinator from the second condition row
+        var combinator = AddRuleDraft.Conditions.Count > 1
+            ? AddRuleDraft.Conditions[1].SelectedCombinator
+            : "AND";
+
+        return combinator == "OR"
+            ? new OrCondition(conditions)
+            : new AndCondition(conditions);
+    }
+
+    private static IRuleCondition? BuildSingleCondition(ConditionRowViewModel row)
+    {
+        var operatorKey = row.SelectedOperator?.Key;
+        if (string.IsNullOrWhiteSpace(operatorKey))
+            return null;
+
+        if (row.SelectedField == "Description")
+        {
+            var text = (row.TextValue ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(text)) return null;
+
+            IRuleCondition cond = operatorKey switch
+            {
+                "contains" => new ContainsCondition(text),
+                "not_contains" => new NotCondition(new ContainsCondition(text)),
+                "starts_with" => new StartsWithCondition(text),
+                "ends_with" => new EndsWithCondition(text),
+                _ => new ContainsCondition(text)
+            };
+
+            return cond;
+        }
+
+        // For non-description fields, fall back to a Contains condition
+        // with a descriptive text (since the domain model is text-based in v1)
+        if (row.SelectedField == "Amount" || row.SelectedField == "Date" || row.SelectedField == "Category")
+        {
+            var value = row.RenderValueForPreview();
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            return new ContainsCondition($"{row.SelectedField}:{operatorKey}:{value}");
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Converts a domain condition tree back into display text for the IF column.
+    /// </summary>
+    private static string BuildIfTextFromCondition(IRuleCondition condition)
+    {
+        return condition switch
+        {
+            ContainsCondition c => $"Description Contains '{c.Fragment}'",
+            StartsWithCondition c => $"Description Starts with '{c.Prefix}'",
+            EndsWithCondition c => $"Description Ends with '{c.Suffix}'",
+            NotCondition n => BuildNotText(n),
+            AndCondition and => BuildCompositeText("AND", and),
+            OrCondition or => BuildCompositeText("OR", or),
+            _ => condition.ToString() ?? ""
+        };
+    }
+
+    private static string BuildNotText(NotCondition not)
+    {
+        var field = not.GetType().GetField("_inner",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var inner = (IRuleCondition?)field?.GetValue(not);
+        if (inner is null) return "NOT (unknown)";
+
+        return inner switch
+        {
+            ContainsCondition c => $"Description Does not contain '{c.Fragment}'",
+            _ => $"NOT ({BuildIfTextFromCondition(inner)})"
+        };
+    }
+
+    private static string BuildCompositeText(string combinator, IRuleCondition composite)
+    {
+        var field = composite.GetType().GetField("_conditions",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        var conditions = (IReadOnlyList<IRuleCondition>?)field?.GetValue(composite);
+        if (conditions is null || conditions.Count == 0) return "";
+
+        var parts = conditions.Select((c, i) =>
+        {
+            var text = BuildIfTextFromCondition(c);
+            return i == 0 ? text : $"{combinator} {text}";
+        });
+
+        return string.Join(" ", parts);
     }
 
     public sealed record OperatorOption(string Key, string Label);
