@@ -129,6 +129,8 @@ internal static class Program
             (path, profileKey, onBack, onImport) =>
                 new PreviewImportViewModel(
                     importService: sp.GetRequiredService<IImportService>(),
+                    categoryService: sp.GetRequiredService<ICategoryService>(),
+                    ruleService: sp.GetRequiredService<IRuleService>(),
                     selectedFilePath: path,
                     mappingProfile: profileKey,
                     onBack: onBack,
@@ -147,6 +149,8 @@ internal static class Program
             (path, profile, onBack, onImport) => 
                 new PreviewImportViewModel(
                     sp.GetRequiredService<IImportService>(),
+                    sp.GetRequiredService<ICategoryService>(),
+                    sp.GetRequiredService<IRuleService>(),
                     path,
                     profile,
                     onBack,
