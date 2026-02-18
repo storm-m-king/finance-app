@@ -1,0 +1,480 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ExpenseTracker.UI.Features.Transactions.TransactionsView">
+
+  <Grid>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Disabled">
+
+    <Border Padding="0,0,12,24">
+      <Grid RowDefinitions="Auto,Auto,Auto"
+            RowSpacing="18">
+
+        <!-- Header + Clear Filters -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+          <StackPanel Grid.Column="0" Spacing="6">
+            <TextBlock Text="Transactions"
+                       FontSize="32"
+                       FontWeight="Bold" />
+            <TextBlock Text="View and filter all imported transactions"
+                       Classes="muted" />
+          </StackPanel>
+
+          <Button Grid.Column="1"
+                  Background="#1C2A40"
+                  Foreground="#A7B4D1"
+                  CornerRadius="12"
+                  Padding="14,10"
+                  FontWeight="SemiBold"
+                  IsVisible="{Binding HasActiveFilters}"
+                  Command="{Binding ClearFilters}">
+            ✕  Clear Filters
+          </Button>
+        </Grid>
+
+        <!-- Filters card -->
+        <Border Grid.Row="1" Classes="card">
+          <StackPanel Spacing="14">
+
+            <!-- Search bar -->
+            <TextBox Text="{Binding SearchText}"
+                     Watermark="Search transactions by description, amount, category..."
+                     CornerRadius="10"
+                     Padding="14,10"
+                     FontSize="14"/>
+
+            <!-- Filter row: multi-select flyout buttons + date range -->
+            <Grid ColumnDefinitions="*,*,*"
+                  ColumnSpacing="12">
+
+              <!-- Category multi-select -->
+              <StackPanel Grid.Column="0" Spacing="4">
+                <TextBlock Text="Category"
+                           Classes="muted"
+                           FontSize="12"
+                           FontWeight="SemiBold"/>
+                <Button Background="#0B1220"
+                        BorderBrush="#1C2A40"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="10,8"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        FontWeight="SemiBold">
+                  <TextBlock Text="{Binding CategoryFilterLabel}" Classes="muted"/>
+                  <Button.Flyout>
+                    <Flyout Placement="BottomEdgeAlignedLeft">
+                      <Border MinWidth="200" MaxHeight="280">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                          <ItemsControl ItemsSource="{Binding CategoryFilters}">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsChecked}"
+                                          Content="{Binding Label}"
+                                          Margin="4,2"
+                                          FontWeight="SemiBold"/>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </ScrollViewer>
+                      </Border>
+                    </Flyout>
+                  </Button.Flyout>
+                </Button>
+              </StackPanel>
+
+              <!-- Status multi-select -->
+              <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Text="Status"
+                           Classes="muted"
+                           FontSize="12"
+                           FontWeight="SemiBold"/>
+                <Button Background="#0B1220"
+                        BorderBrush="#1C2A40"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="10,8"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        FontWeight="SemiBold">
+                  <TextBlock Text="{Binding StatusFilterLabel}" Classes="muted"/>
+                  <Button.Flyout>
+                    <Flyout Placement="BottomEdgeAlignedLeft">
+                      <Border MinWidth="200">
+                        <ItemsControl ItemsSource="{Binding StatusFilters}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <CheckBox IsChecked="{Binding IsChecked}"
+                                        Content="{Binding Label}"
+                                        Margin="4,2"
+                                        FontWeight="SemiBold"/>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </Border>
+                    </Flyout>
+                  </Button.Flyout>
+                </Button>
+              </StackPanel>
+
+              <!-- Account multi-select -->
+              <StackPanel Grid.Column="2" Spacing="4">
+                <TextBlock Text="Account"
+                           Classes="muted"
+                           FontSize="12"
+                           FontWeight="SemiBold"/>
+                <Button Background="#0B1220"
+                        BorderBrush="#1C2A40"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="10,8"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        FontWeight="SemiBold">
+                  <TextBlock Text="{Binding AccountFilterLabel}" Classes="muted"/>
+                  <Button.Flyout>
+                    <Flyout Placement="BottomEdgeAlignedLeft">
+                      <Border MinWidth="200">
+                        <ItemsControl ItemsSource="{Binding AccountFilters}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <CheckBox IsChecked="{Binding IsChecked}"
+                                        Content="{Binding Label}"
+                                        Margin="4,2"
+                                        FontWeight="SemiBold"/>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </Border>
+                    </Flyout>
+                  </Button.Flyout>
+                </Button>
+              </StackPanel>
+            </Grid>
+
+            <!-- Date range presets -->
+            <StackPanel Spacing="4">
+              <TextBlock Text="Date Range"
+                         Classes="muted"
+                         FontSize="12"
+                         FontWeight="SemiBold"/>
+              <ItemsControl ItemsSource="{Binding DatePresets}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal"/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Button Content="{Binding Label}"
+                            Background="#0B1220"
+                            BorderBrush="#1C2A40"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="12,8"
+                            Margin="0,4,8,4"
+                            FontWeight="SemiBold"
+                            FontSize="12"
+                            Command="{Binding $parent[ItemsControl].DataContext.SelectPresetCommand}"
+                            CommandParameter="{Binding}"/>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <!-- Active date range indicator -->
+              <TextBlock Text="{Binding DateRangeLabel}"
+                         FontSize="13"
+                         FontWeight="SemiBold"
+                         Foreground="{DynamicResource Blue}"
+                         IsVisible="{Binding DateRangeLabel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                         Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <!-- Options -->
+            <CheckBox IsChecked="{Binding ShowSourceFile}"
+                      Content="Include Source File"
+                      FontWeight="SemiBold"
+                      Margin="0,2,0,0"/>
+
+          </StackPanel>
+        </Border>
+
+        <!-- Transactions table card -->
+        <Border Grid.Row="2" Classes="card">
+          <StackPanel Spacing="14">
+
+            <TextBlock Text="{Binding SummaryText}"
+                       FontSize="14"
+                       FontWeight="SemiBold"
+                       Classes="muted"/>
+
+            <!-- Table shell -->
+            <Border Background="#0B1220"
+                    BorderBrush="#1C2A40"
+                    BorderThickness="1"
+                    CornerRadius="14"
+                    ClipToBounds="True">
+
+              <Grid RowDefinitions="Auto,*">
+
+                <!-- Header row (without source file) -->
+                <Border Grid.Row="0"
+                        Background="#101C33"
+                        BorderBrush="#1C2A40"
+                        BorderThickness="0,0,0,1"
+                        Padding="18,14"
+                        IsVisible="{Binding !ShowSourceFile}">
+                  <Grid ColumnDefinitions="1.2*,2.5*,1.2*,1.8*,1.5*,1.3*"
+                        ColumnSpacing="12">
+                    <TextBlock Grid.Column="0" Text="Date"
+                               Classes="muted" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="1" Text="Description"
+                               Classes="muted" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="2" Text="Amount"
+                               Classes="muted" FontWeight="SemiBold"
+                               HorizontalAlignment="Right"/>
+                    <TextBlock Grid.Column="3" Text="Category"
+                               Classes="muted" FontWeight="SemiBold"
+                               Margin="8,0,0,0"/>
+                    <TextBlock Grid.Column="4" Text="Account"
+                               Classes="muted" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="5" Text="Status"
+                               Classes="muted" FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+                  </Grid>
+                </Border>
+
+                <!-- Header row (with source file) -->
+                <Border Grid.Row="0"
+                        Background="#101C33"
+                        BorderBrush="#1C2A40"
+                        BorderThickness="0,0,0,1"
+                        Padding="18,14"
+                        IsVisible="{Binding ShowSourceFile}">
+                  <Grid ColumnDefinitions="1.2*,2*,1.2*,1.6*,1.3*,1.2*,2.5*"
+                        ColumnSpacing="12">
+                    <TextBlock Grid.Column="0" Text="Date"
+                               Classes="muted" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="1" Text="Description"
+                               Classes="muted" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="2" Text="Amount"
+                               Classes="muted" FontWeight="SemiBold"
+                               HorizontalAlignment="Right"/>
+                    <TextBlock Grid.Column="3" Text="Category"
+                               Classes="muted" FontWeight="SemiBold"
+                               Margin="8,0,0,0"/>
+                    <TextBlock Grid.Column="4" Text="Account"
+                               Classes="muted" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="5" Text="Status"
+                               Classes="muted" FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Grid.Column="6" Text="Source File"
+                               Classes="muted" FontWeight="SemiBold"/>
+                  </Grid>
+                </Border>
+
+                <!-- Scrollable rows (without source file) -->
+                <Border Grid.Row="1"
+                        Padding="0"
+                        MaxHeight="480"
+                        IsVisible="{Binding !ShowSourceFile}">
+                  <ListBox ItemsSource="{Binding FilteredRows}"
+                           Background="Transparent"
+                           BorderThickness="0"
+                           ScrollViewer.VerticalScrollBarVisibility="Auto"
+                           ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+
+                    <ListBox.Styles>
+                      <Style Selector="ListBox">
+                        <Setter Property="Padding" Value="0"/>
+                      </Style>
+                      <Style Selector="ListBoxItem">
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                      </Style>
+                      <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#0D1B33"/>
+                      </Style>
+                    </ListBox.Styles>
+
+                    <ListBox.ItemTemplate>
+                      <DataTemplate>
+                        <Border BorderBrush="#1C2A40"
+                                BorderThickness="0,0,0,1"
+                                Padding="18,8">
+                          <Grid ColumnDefinitions="1.2*,2.5*,1.2*,1.8*,1.5*,1.3*"
+                                ColumnSpacing="12"
+                                VerticalAlignment="Center">
+                            <TextBlock Grid.Column="0" Text="{Binding DateText}"
+                                       FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Description}"
+                                       TextTrimming="CharacterEllipsis"
+                                       FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="2" Text="{Binding AmountText}"
+                                       HorizontalAlignment="Right" FontWeight="Bold" FontSize="13"
+                                       Foreground="{Binding AmountColor}" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="3"
+                                      ItemsSource="{Binding CategoryOptions}"
+                                      SelectedItem="{Binding SelectedCategory}"
+                                      Background="#121C30" BorderBrush="#1C2A40" BorderThickness="1"
+                                      CornerRadius="10" Padding="8,4" Margin="8,0,0,0"
+                                      FontSize="12" FontWeight="SemiBold"
+                                      HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="4" Text="{Binding Account}"
+                                       Classes="muted" FontWeight="SemiBold" FontSize="12"
+                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="5"
+                                      ItemsSource="{Binding StatusOptions}"
+                                      SelectedItem="{Binding SelectedStatus}"
+                                      Background="#0B1527" BorderBrush="#1C2A40" BorderThickness="1"
+                                      CornerRadius="10" Padding="6,3" FontSize="11" FontWeight="SemiBold"
+                                      Foreground="{Binding StatusColor}"
+                                      HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </Border>
+
+                <!-- Scrollable rows (with source file) -->
+                <Border Grid.Row="1"
+                        Padding="0"
+                        MaxHeight="480"
+                        IsVisible="{Binding ShowSourceFile}">
+                  <ListBox ItemsSource="{Binding FilteredRows}"
+                           Background="Transparent"
+                           BorderThickness="0"
+                           ScrollViewer.VerticalScrollBarVisibility="Auto"
+                           ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+
+                    <ListBox.Styles>
+                      <Style Selector="ListBox">
+                        <Setter Property="Padding" Value="0"/>
+                      </Style>
+                      <Style Selector="ListBoxItem">
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                      </Style>
+                      <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#0D1B33"/>
+                      </Style>
+                    </ListBox.Styles>
+
+                    <ListBox.ItemTemplate>
+                      <DataTemplate>
+                        <Border BorderBrush="#1C2A40"
+                                BorderThickness="0,0,0,1"
+                                Padding="18,8">
+                          <Grid ColumnDefinitions="1.2*,2*,1.2*,1.6*,1.3*,1.2*,2.5*"
+                                ColumnSpacing="12"
+                                VerticalAlignment="Center">
+                            <TextBlock Grid.Column="0" Text="{Binding DateText}"
+                                       FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding Description}"
+                                       TextTrimming="CharacterEllipsis"
+                                       FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="2" Text="{Binding AmountText}"
+                                       HorizontalAlignment="Right" FontWeight="Bold" FontSize="13"
+                                       Foreground="{Binding AmountColor}" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="3"
+                                      ItemsSource="{Binding CategoryOptions}"
+                                      SelectedItem="{Binding SelectedCategory}"
+                                      Background="#121C30" BorderBrush="#1C2A40" BorderThickness="1"
+                                      CornerRadius="10" Padding="8,4" Margin="8,0,0,0"
+                                      FontSize="12" FontWeight="SemiBold"
+                                      HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="4" Text="{Binding Account}"
+                                       Classes="muted" FontWeight="SemiBold" FontSize="12"
+                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="5"
+                                      ItemsSource="{Binding StatusOptions}"
+                                      SelectedItem="{Binding SelectedStatus}"
+                                      Background="#0B1527" BorderBrush="#1C2A40" BorderThickness="1"
+                                      CornerRadius="10" Padding="6,3" FontSize="11" FontWeight="SemiBold"
+                                      Foreground="{Binding StatusColor}"
+                                      HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="6" Text="{Binding SourceFile}"
+                                       Classes="muted" FontSize="11"
+                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </Border>
+
+              </Grid>
+            </Border>
+
+          </StackPanel>
+        </Border>
+
+      </Grid>
+    </Border>
+  </ScrollViewer>
+
+  <!-- Custom Date Range dialog overlay -->
+  <Border Background="#80000000"
+          IsVisible="{Binding IsCustomDateDialogOpen}"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch">
+    <Border Background="#0F1A2E"
+            BorderBrush="#1C2A40"
+            BorderThickness="1"
+            CornerRadius="18"
+            Padding="28,24"
+            MaxWidth="420"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+      <StackPanel Spacing="18">
+
+        <TextBlock Text="Custom Date Range"
+                   FontSize="20"
+                   FontWeight="Bold"/>
+
+        <StackPanel Spacing="6">
+          <TextBlock Text="From"
+                     Classes="muted"
+                     FontWeight="SemiBold"/>
+          <DatePicker SelectedDate="{Binding CustomDateFrom}"
+                      CornerRadius="10"
+                      HorizontalAlignment="Stretch"/>
+        </StackPanel>
+
+        <StackPanel Spacing="6">
+          <TextBlock Text="To"
+                     Classes="muted"
+                     FontWeight="SemiBold"/>
+          <DatePicker SelectedDate="{Binding CustomDateTo}"
+                      CornerRadius="10"
+                      HorizontalAlignment="Stretch"/>
+        </StackPanel>
+
+        <Grid ColumnDefinitions="*,*"
+              ColumnSpacing="12">
+          <Button Grid.Column="0"
+                  Classes="secondaryWide"
+                  Command="{Binding CancelCustomDateRange}"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center">
+            Cancel
+          </Button>
+          <Button Grid.Column="1"
+                  Classes="primaryWide"
+                  Command="{Binding ApplyCustomDateRange}"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center">
+            Apply
+          </Button>
+        </Grid>
+
+      </StackPanel>
+    </Border>
+  </Border>
+
+  </Grid>
+</UserControl>
