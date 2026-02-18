@@ -238,10 +238,21 @@ public sealed class PreviewImportViewModel : ViewModelBase
 
         await _categoryService.CreateUserCategoryAsync(name, SelectedNewCategoryType);
 
-        // Reload categories to get the new one with its Guid
-        await LoadCategoriesAsync();
-
         var displayEntry = $"{name} ({SelectedNewCategoryType})";
+
+        // Fetch the newly created category to get its Guid for the lookup cache
+        var allCategories = await _categoryService.GetAllCategoriesAsync();
+        var newCat = allCategories.FirstOrDefault(c =>
+            string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (newCat != null)
+            _categoryLookup[displayEntry] = newCat;
+
+        // Insert before the sentinel without clearing the collection
+        var sentinelIdx = AvailableCategories.IndexOf(AddNewCategorySentinel);
+        if (sentinelIdx >= 0)
+            AvailableCategories.Insert(sentinelIdx, displayEntry);
+        else
+            AvailableCategories.Add(displayEntry);
 
         // Select the new category on the row that triggered the dialog
         if (_pendingNewCategoryRow != null)
