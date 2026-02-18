@@ -27,10 +27,11 @@ public sealed class CategoryService : ICategoryService
         var trimmedName = name.Trim();
         var parsedType = ParseCategoryType(typeText);
 
-        // Enforce duplicate name rule (global, case-insensitive)
+        // Enforce duplicate (name + type) rule (case-insensitive)
         var existing = await _repository.GetAllAsync(ct).ConfigureAwait(false);
-        if (existing.Any(c => string.Equals(c.Name, trimmedName, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException($"A category named '{trimmedName}' already exists.");
+        if (existing.Any(c => string.Equals(c.Name, trimmedName, StringComparison.OrdinalIgnoreCase)
+                              && c.Type == parsedType))
+            throw new InvalidOperationException($"A category named '{trimmedName}' with type '{parsedType}' already exists.");
 
         var category = new Category(
             id: Guid.NewGuid(),
@@ -77,11 +78,12 @@ public sealed class CategoryService : ICategoryService
         if (existing.IsSystemCategory)
             throw new InvalidOperationException("System categories cannot be modified.");
 
-        // Enforce duplicate name rule (exclude self)
+        // Enforce duplicate (name + type) rule (exclude self)
         var all = await _repository.GetAllAsync(ct).ConfigureAwait(false);
         if (all.Any(c =>
                 c.Id != id &&
-                string.Equals(c.Name, trimmedName, StringComparison.OrdinalIgnoreCase)))
+                string.Equals(c.Name, trimmedName, StringComparison.OrdinalIgnoreCase)
+                && c.Type == parsedType))
         {
             throw new InvalidOperationException($"A category named '{trimmedName}' already exists.");
         }
