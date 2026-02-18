@@ -326,6 +326,20 @@ public sealed class TransactionsViewModel : ViewModelBase
                     }
                     if (_categoryDisplayToId.TryGetValue(newCategory, out var catId))
                         await _transactionService.UpdateCategoryAsync(row.TransactionId, catId);
+
+                    // Add to category filters if not already present
+                    if (!CategoryFilters.Any(f => f.Label == newCategory))
+                    {
+                        var item = new FilterCheckItem(newCategory);
+                        SubscribeToFilterItem(item);
+                        // Insert in sorted order
+                        var idx = 0;
+                        while (idx < CategoryFilters.Count &&
+                               string.Compare(CategoryFilters[idx].Label, newCategory, StringComparison.Ordinal) < 0)
+                            idx++;
+                        CategoryFilters.Insert(idx, item);
+                    }
+
                     FilterTrigger++;
                 });
 
