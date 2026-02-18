@@ -10,10 +10,12 @@ using ExpenseTracker.Services.Contracts;
 using ExpenseTracker.Services.Services.FingerPrint;
 using ExpenseTracker.Services.Services.Import;
 using ExpenseTracker.Services.Services.Import.Profiles;
+using ExpenseTracker.Services.Services.Transaction;
 using ExpenseTracker.UI.Features.Categories;
 using ExpenseTracker.UI.Features.Import.ImportView;
 using ExpenseTracker.UI.Features.Import.PreviewView;
 using ExpenseTracker.UI.Features.Rules;
+using ExpenseTracker.UI.Features.Transactions;
 using ExpenseTracker.UI.Shell;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -105,12 +107,14 @@ internal static class Program
         services.AddSingleton<IFingerprintService, Sha256FingerprintService>();
         services.AddSingleton<ICategoryService, CategoryService>();
         services.AddSingleton<IRuleService, RuleService>();
+        services.AddSingleton<ITransactionService, TransactionService>();
         
         // Repositories
         services.AddSingleton<IAccountRepository, AccountRepository>();
         services.AddSingleton<IImportProfileRepository, ImportProfileRepository>();
         services.AddSingleton<ICategoryRepository, CategoryRepository>();
         services.AddSingleton<IRuleRepository, RuleRepository>();
+        services.AddSingleton<ITransactionRepository, TransactionRepository>();
         
 
         // Short-lived startup helpers used during application initialization.
@@ -129,6 +133,7 @@ internal static class Program
             (path, profileKey, onBack, onImport) =>
                 new PreviewImportViewModel(
                     importService: sp.GetRequiredService<IImportService>(),
+                    transactionService: sp.GetRequiredService<ITransactionService>(),
                     categoryService: sp.GetRequiredService<ICategoryService>(),
                     ruleService: sp.GetRequiredService<IRuleService>(),
                     selectedFilePath: path,
@@ -137,24 +142,6 @@ internal static class Program
                     onImport: onImport));
         
         services.AddTransient<MainWindowViewModel>();
-        
-        services.AddTransient<Func<Action<string, string>, ImportViewModel>>(sp => onContinue =>
-            new ImportViewModel(
-                importService: sp.GetRequiredService<IImportService>(),
-                onContinueToPreview: onContinue
-            )
-        );
-        
-        services.AddTransient<Func<string, string, Action, Action<int>, PreviewImportViewModel>>(sp =>
-            (path, profile, onBack, onImport) => 
-                new PreviewImportViewModel(
-                    sp.GetRequiredService<IImportService>(),
-                    sp.GetRequiredService<ICategoryService>(),
-                    sp.GetRequiredService<IRuleService>(),
-                    path,
-                    profile,
-                    onBack,
-                    onImport));
 
         services.AddTransient<Func<CategoriesViewModel>>(sp =>
             () => new CategoriesViewModel(
@@ -168,6 +155,14 @@ internal static class Program
                 sp.GetRequiredService<IRuleService>(),
                 sp.GetRequiredService<ICategoryService>(),
                 sp.GetRequiredService<IAppLogger>()
+            )
+        );
+
+        services.AddTransient<Func<TransactionsViewModel>>(sp =>
+            () => new TransactionsViewModel(
+                sp.GetRequiredService<ITransactionService>(),
+                sp.GetRequiredService<ICategoryService>(),
+                sp.GetRequiredService<IAccountRepository>()
             )
         );
 

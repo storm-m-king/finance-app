@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Reactive;
 using System.Reactive.Linq;
+using ExpenseTracker.Infrastructure.Configuration;
 using ExpenseTracker.Domain.Category;
 using ExpenseTracker.Domain.Rules;
 using ExpenseTracker.Services.Contracts;
@@ -15,6 +16,7 @@ public sealed class PreviewImportViewModel : ViewModelBase
     private const string AddNewCategorySentinel = "+ Add New Category";
 
     private readonly IImportService _importService;
+    private readonly ITransactionService _transactionService;
     private readonly ICategoryService _categoryService;
     private readonly IRuleService _ruleService;
 
@@ -66,6 +68,7 @@ public sealed class PreviewImportViewModel : ViewModelBase
 
     public PreviewImportViewModel(
         IImportService importService,
+        ITransactionService transactionService,
         ICategoryService categoryService,
         IRuleService ruleService,
         string selectedFilePath,
@@ -74,6 +77,7 @@ public sealed class PreviewImportViewModel : ViewModelBase
         Action<int> onImport)
     {
         _importService = importService;
+        _transactionService = transactionService;
         _categoryService = categoryService;
         _ruleService = ruleService;
         _selectedFilePath = selectedFilePath;
@@ -104,8 +108,95 @@ public sealed class PreviewImportViewModel : ViewModelBase
         // Create rules for any rows where the user manually changed the category
         await CreateRulesForManualEditsAsync();
 
-        var importedCount = await _importService.PreviewAsync(_mappingProfile, _selectedFilePath);
-        _onImport(importedCount.Count);
+        // Re-run preview to get final categorized rows (with new rules applied)
+        var finalRows = await _importService.PreviewAsync(_mappingProfile, _selectedFilePath);
+
+        // Apply any user overrides from the preview grid
+        var overriddenRows = ApplyUserOverrides(finalRows);
+
+        // Backup the imported CSV to the Imports directory
+        var backupFileName = BackupImportFile(_selectedFilePath);
+
+        // Persist transactions — store only the backup filename, not the full path
+        var importedCount = await _transactionService.ImportTransactionsAsync(
+            overriddenRows, backupFileName);
+
+        _onImport(importedCount);
+    }
+
+    /// <summary>
+    /// Copies the source CSV into the Imports directory.
+    /// If a file with the same name already exists and has identical contents, reuses it.
+    /// If contents differ, appends (1), (2), etc. until a unique name is found.
+    /// Returns the backup filename only (not the full path).
+    /// </summary>
+    private static string BackupImportFile(string sourcePath)
+    {
+        var importsDir = AppPaths.GetImportsDirectory();
+        Directory.CreateDirectory(importsDir);
+
+        var baseName = Path.GetFileNameWithoutExtension(sourcePath);
+        var ext = Path.GetExtension(sourcePath);
+        var candidateName = $"{baseName}{ext}";
+        var candidatePath = Path.Combine(importsDir, candidateName);
+
+        var sourceHash = ComputeFileHash(sourcePath);
+
+        // If file exists with same name, check if contents match
+        if (File.Exists(candidatePath))
+        {
+            if (ComputeFileHash(candidatePath) == sourceHash)
+                return candidateName;
+
+            // Contents differ — find next available (N) suffix
+            var n = 1;
+            do
+            {
+                candidateName = $"{baseName} ({n}){ext}";
+                candidatePath = Path.Combine(importsDir, candidateName);
+
+                if (File.Exists(candidatePath) && ComputeFileHash(candidatePath) == sourceHash)
+                    return candidateName;
+
+                n++;
+            } while (File.Exists(candidatePath));
+        }
+
+        File.Copy(sourcePath, candidatePath, overwrite: false);
+        return candidateName;
+    }
+
+    private static string ComputeFileHash(string filePath)
+    {
+        using var stream = File.OpenRead(filePath);
+        var hashBytes = System.Security.Cryptography.SHA256.HashData(stream);
+        return Convert.ToHexString(hashBytes);
+    }
+
+    private IReadOnlyList<ExpenseTracker.Services.DTOs.TransactionPreviewRow> ApplyUserOverrides(
+        IReadOnlyList<ExpenseTracker.Services.DTOs.TransactionPreviewRow> rows)
+    {
+        // Build a lookup of user overrides: description → categoryId
+        var overrides = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+        foreach (var previewRow in PreviewRows)
+        {
+            if (!previewRow.WasManuallyEdited) continue;
+            var categoryId = ResolveCategoryId(previewRow.SelectedCategory);
+            if (categoryId.HasValue)
+                overrides[previewRow.Description] = categoryId.Value;
+        }
+
+        if (overrides.Count == 0) return rows;
+
+        var result = new List<ExpenseTracker.Services.DTOs.TransactionPreviewRow>(rows.Count);
+        foreach (var row in rows)
+        {
+            if (overrides.TryGetValue(row.RawDescription, out var overrideCategoryId))
+                result.Add(row with { CategoryId = overrideCategoryId });
+            else
+                result.Add(row);
+        }
+        return result;
     }
 
     private async Task CreateRulesForManualEditsAsync()

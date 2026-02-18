@@ -2,6 +2,11 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Reactive;
 using System.Reactive.Linq;
+using Avalonia.Threading;
+using ExpenseTracker.Domain.Account;
+using ExpenseTracker.Domain.Category;
+using ExpenseTracker.Domain.Transaction;
+using ExpenseTracker.Services.Contracts;
 using ReactiveUI;
 using ExpenseTracker.UI.ViewModels;
 
@@ -30,6 +35,10 @@ public sealed class FilterCheckItem : ViewModelBase
 
 public sealed class TransactionsViewModel : ViewModelBase
 {
+    private readonly ITransactionService _transactionService;
+    private readonly ICategoryService _categoryService;
+    private readonly IAccountRepository _accountRepository;
+
     private readonly ObservableCollection<TransactionRowViewModel> _allRows = new();
 
     public ObservableCollection<TransactionRowViewModel> FilteredRows { get; } = new();
@@ -153,8 +162,21 @@ public sealed class TransactionsViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _filterTrigger, value);
     }
 
-    public TransactionsViewModel()
+    // Lookups populated during load
+    private Dictionary<Guid, string> _categoryLookup = new();
+    private Dictionary<Guid, Account> _accountObjectLookup = new();
+    private Dictionary<Guid, string> _accountLookup = new();
+    private Dictionary<string, Guid> _categoryNameToId = new(StringComparer.OrdinalIgnoreCase);
+
+    public TransactionsViewModel(
+        ITransactionService transactionService,
+        ICategoryService categoryService,
+        IAccountRepository accountRepository)
     {
+        _transactionService = transactionService;
+        _categoryService = categoryService;
+        _accountRepository = accountRepository;
+
         // Build date presets
         var now = DateTime.Today;
         var currentMonth = new DateRangePreset("Current Month", new DateOnly(now.Year, now.Month, 1), DateOnly.FromDateTime(now), false);
@@ -167,8 +189,6 @@ public sealed class TransactionsViewModel : ViewModelBase
         DatePresets.Add(new DateRangePreset($"{now.Year - 2}", new DateOnly(now.Year - 2, 1, 1), new DateOnly(now.Year - 2, 12, 31), false));
         DatePresets.Add(new DateRangePreset("Custom Range", null, null, true));
 
-        SeedSampleData();
-
         ClearFilters = ReactiveCommand.Create(ClearAllFilters);
         ApplyCustomDateRange = ReactiveCommand.Create(ApplyCustomRange);
         CancelCustomDateRange = ReactiveCommand.Create(() => { IsCustomDateDialogOpen = false; });
@@ -178,9 +198,6 @@ public sealed class TransactionsViewModel : ViewModelBase
         this.WhenAnyValue(x => x.SelectedDatePreset)
             .Subscribe(OnDatePresetSelected);
 
-        // Default to Current Month
-        SelectedDatePreset = currentMonth;
-
         // Reactive filter pipeline
         this.WhenAnyValue(
                 x => x.SearchText,
@@ -189,7 +206,169 @@ public sealed class TransactionsViewModel : ViewModelBase
             .ObserveOn(RxApp.MainThreadScheduler)
             .Subscribe(_ => ApplyFilters());
 
-        ApplyFilters();
+        // Load data — no default date filter applied
+        _ = LoadTransactionsAsync();
+    }
+
+    private async Task LoadTransactionsAsync()
+    {
+        try
+        {
+            // Load categories and accounts for display lookups
+            var categories = await _categoryService.GetAllCategoriesAsync();
+            _categoryLookup = categories.ToDictionary(c => c.Id, c => c.Name);
+            _categoryNameToId = categories
+                .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+
+            var accounts = await _accountRepository.GetAllAsync();
+            _accountLookup = accounts.ToDictionary(a => a.Id, a => a.Name);
+            _accountObjectLookup = accounts.ToDictionary(a => a.Id);
+
+            // Load all transactions
+            var transactions = await _transactionService.GetAllTransactionsAsync();
+
+            // Switch to UI thread for collection updates
+            await Dispatcher.UIThread.InvokeAsync(() => PopulateUI(categories, transactions));
+        }
+        catch (Exception ex)
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+                SummaryText = $"Error loading transactions: {ex.Message}");
+        }
+    }
+
+    private void PopulateUI(
+        IReadOnlyList<Category> categories,
+        IReadOnlyList<Transaction> transactions)
+    {
+        // Build category names for per-row editing ComboBox
+        AllCategoryNames.Clear();
+        foreach (var cat in categories.OrderBy(c => c.Name))
+            AllCategoryNames.Add(cat.Name);
+
+        var categoryNames = new HashSet<string>();
+        var accountNames = new HashSet<string>();
+
+        _allRows.Clear();
+        foreach (var t in transactions)
+        {
+            var categoryName = _categoryLookup.TryGetValue(t.CategoryId, out var cn) ? cn : "Uncategorized";
+            var accountName = _accountLookup.TryGetValue(t.AccountId, out var an) ? an : "Unknown";
+            var statusText = FormatStatus(t.Status);
+
+            // Normalize amount so positive = income, negative = expense
+            var displayAmount = NormalizeAmount(t.AmountCents, t.AccountId);
+
+            categoryNames.Add(categoryName);
+            accountNames.Add(accountName);
+
+            var row = new TransactionRowViewModel(
+                t.Id,
+                t.PostedDate, t.RawDescription, displayAmount,
+                categoryName, accountName, statusText,
+                t.IsTransfer, t.SourceFileName ?? string.Empty,
+                AllCategoryNames);
+
+            // Wire category change to persist
+            row.WhenAnyValue(x => x.SelectedCategory)
+                .Skip(1)
+                .Throttle(TimeSpan.FromMilliseconds(300))
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(async newCategory =>
+                {
+                    if (_categoryNameToId.TryGetValue(newCategory, out var catId))
+                        await _transactionService.UpdateCategoryAsync(row.TransactionId, catId);
+                    FilterTrigger++;
+                });
+
+            // Wire status change to persist
+            row.WhenAnyValue(x => x.SelectedStatus)
+                .Skip(1)
+                .Throttle(TimeSpan.FromMilliseconds(300))
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(async newStatus =>
+                {
+                    var status = ParseStatus(newStatus);
+                    await _transactionService.UpdateStatusAsync(row.TransactionId, status);
+                    FilterTrigger++;
+                });
+
+            _allRows.Add(row);
+        }
+
+        // Build multi-select filter items
+        CategoryFilters.Clear();
+        foreach (var c in categoryNames.OrderBy(c => c))
+        {
+            var item = new FilterCheckItem(c);
+            SubscribeToFilterItem(item);
+            CategoryFilters.Add(item);
+        }
+
+        StatusFilters.Clear();
+        foreach (var s in new[] { "Needs Review", "Reviewed", "Ignored" })
+        {
+            var item = new FilterCheckItem(s);
+            SubscribeToFilterItem(item);
+            StatusFilters.Add(item);
+        }
+
+        AccountFilters.Clear();
+        foreach (var a in accountNames.OrderBy(a => a))
+        {
+            var item = new FilterCheckItem(a);
+            SubscribeToFilterItem(item);
+            AccountFilters.Add(item);
+        }
+
+        // Directly populate FilteredRows — no filter applied by default
+        FilteredRows.Clear();
+        foreach (var row in _allRows)
+            FilteredRows.Add(row);
+
+        // Update summary
+        var totalAmount = _allRows.Where(r => !string.Equals(r.SelectedCategory, "Transfer", StringComparison.OrdinalIgnoreCase)).Sum(r => r.AmountCents);
+        var dollars = totalAmount / 100m;
+        var sign = dollars >= 0 ? "+" : "";
+        SummaryText = $"Showing {_allRows.Count} of {_allRows.Count} transactions  •  Net: {sign}{dollars.ToString("C", CultureInfo.GetCultureInfo("en-US"))}";
+    }
+
+    private static string FormatStatus(TransactionStatus status) => status switch
+    {
+        TransactionStatus.NeedsReview => "Needs Review",
+        TransactionStatus.Reviewed => "Reviewed",
+        TransactionStatus.Ignored => "Ignored",
+        _ => "Unknown"
+    };
+
+    private static TransactionStatus ParseStatus(string status) => status switch
+    {
+        "Needs Review" => TransactionStatus.NeedsReview,
+        "Reviewed" => TransactionStatus.Reviewed,
+        "Ignored" => TransactionStatus.Ignored,
+        _ => TransactionStatus.NeedsReview
+    };
+
+    /// <summary>
+    /// Normalizes raw amount so that positive = income, negative = expense,
+    /// regardless of the source institution's sign convention.
+    /// Checking accounts already follow this convention.
+    /// Credit accounts need the sign flipped when CreditNegative_DebitPositive.
+    /// </summary>
+    private long NormalizeAmount(long rawAmountCents, Guid accountId)
+    {
+        if (!_accountObjectLookup.TryGetValue(accountId, out var account))
+            return rawAmountCents;
+
+        if (account.Type == AccountType.Credit &&
+            account.CreditSignConvention == CreditSignConvention.CreditNegative_DebitPositive)
+        {
+            // Convention: positive = expense, negative = credit/payment → flip
+            return -rawAmountCents;
+        }
+
+        return rawAmountCents;
     }
 
     private void OnDatePresetSelected(DateRangePreset? preset)
@@ -323,89 +502,11 @@ public sealed class TransactionsViewModel : ViewModelBase
             || checkedAccounts.Count > 0
             || !string.IsNullOrEmpty(DateRangeLabel);
     }
-
-    private void SeedSampleData()
-    {
-        var samples = new[]
-        {
-            ("2026-02-15", "HARRIS TEETER #325", -7123L, "Groceries", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-14", "CHICK-FIL-A #02187", -1489L, "Dining Out", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-14", "STARBUCKS STORE 12345", -675L, "Dining Out", "Amex Platinum", "Needs Review", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-13", "AMAZON.COM*2K8HY7VX3", -6456L, "Shopping", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-13", "MOBILE PAYMENT - THANK YOU", 250000L, "Transfer", "Checking ••4521", "Reviewed", true, @"C:\Users\stoking\Downloads\checking-feb.csv"),
-            ("2026-02-12", "MICROSOFT*XBOX GAMEPASS", -1699L, "Subscriptions", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-12", "APPLE.COM/BILL", -999L, "Subscriptions", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-11", "LOWE'S #1234", -15432L, "Home Improvement", "Amex Platinum", "Needs Review", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-11", "ADTSECURITY 800-878-7806", -5999L, "Home Services", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-10", "NC QUICK PASS", -3500L, "Transportation", "Checking ••4521", "Reviewed", false, @"C:\Users\stoking\Downloads\checking-feb.csv"),
-            ("2026-02-10", "WENDY'S #8876", -1245L, "Dining Out", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-09", "TARGET 00012345", -8934L, "Shopping", "Amex Platinum", "Needs Review", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-09", "UBER EATS", -3245L, "Dining Out", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-08", "YMCA MEMBERSHIP", -4500L, "Fitness", "Checking ••4521", "Reviewed", false, @"C:\Users\stoking\Downloads\checking-feb.csv"),
-            ("2026-02-08", "DOMINO'S PIZZA 8765", -2199L, "Dining Out", "Amex Platinum", "Ignored", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-07", "SPOTIFY USA", -1099L, "Subscriptions", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-07", "FOODLION #0452", -4523L, "Groceries", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-06", "HAWX SERVICES LLC", -12500L, "Home Services", "Checking ••4521", "Reviewed", false, @"C:\Users\stoking\Downloads\checking-feb.csv"),
-            ("2026-02-06", "PAYROLL DEPOSIT", 550000L, "Transfer", "Checking ••4521", "Reviewed", true, @"C:\Users\stoking\Downloads\checking-feb.csv"),
-            ("2026-02-05", "TACO BELL #7634", -1087L, "Dining Out", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-05", "CRUNCHYROLL", -799L, "Subscriptions", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-04", "OPENAI *CHATGPT PLUS", -2000L, "Subscriptions", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-03", "TESLA SUPERCHARGER", -2845L, "Transportation", "Amex Platinum", "Needs Review", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-02", "VIET-THAI RESTAURANT", -4567L, "Dining Out", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-            ("2026-02-01", "TST* THE VAVE", -3421L, "Dining Out", "Amex Platinum", "Reviewed", false, @"C:\Users\stoking\Downloads\activity.csv"),
-        };
-
-        var categories = new HashSet<string>();
-        var accounts = new HashSet<string>();
-        var statuses = new HashSet<string>();
-
-        // First pass: collect unique values
-        foreach (var (_, _, _, cat, acct, status, _, _) in samples)
-        {
-            categories.Add(cat);
-            accounts.Add(acct);
-            statuses.Add(status);
-        }
-
-        // Build category names for per-row editing ComboBox
-        foreach (var c in categories.OrderBy(c => c))
-            AllCategoryNames.Add(c);
-
-        // Second pass: create row VMs with shared category collection
-        foreach (var (date, desc, amount, cat, acct, status, transfer, source) in samples)
-        {
-            var row = new TransactionRowViewModel(
-                DateOnly.Parse(date), desc, amount, cat, acct, status, transfer, source, AllCategoryNames);
-            row.WhenAnyValue(x => x.SelectedCategory)
-                .Skip(1)
-                .Subscribe(_ => FilterTrigger++);
-            _allRows.Add(row);
-        }
-
-        // Build multi-select filter items
-        foreach (var c in categories.OrderBy(c => c))
-        {
-            var item = new FilterCheckItem(c);
-            SubscribeToFilterItem(item);
-            CategoryFilters.Add(item);
-        }
-        foreach (var s in new[] { "Needs Review", "Reviewed", "Ignored" })
-        {
-            var item = new FilterCheckItem(s);
-            SubscribeToFilterItem(item);
-            StatusFilters.Add(item);
-        }
-        foreach (var a in accounts.OrderBy(a => a))
-        {
-            var item = new FilterCheckItem(a);
-            SubscribeToFilterItem(item);
-            AccountFilters.Add(item);
-        }
-    }
 }
 
 public sealed class TransactionRowViewModel : ViewModelBase
 {
+    public Guid TransactionId { get; }
     public DateOnly PostedDate { get; }
     public string DateText { get; }
     public string Description { get; }
@@ -441,10 +542,12 @@ public sealed class TransactionRowViewModel : ViewModelBase
         _ => "#A7B4D1"
     };
 
-    public string AmountColor => IsNegative ? "#EAF0FF" : "#3FA97A";
+    public string AmountColor => IsTransfer || string.Equals(SelectedCategory, "Transfer", StringComparison.OrdinalIgnoreCase)
+        ? "#A7B4D1" : IsNegative ? "#E05555" : "#3FA97A";
 
-    public TransactionRowViewModel(DateOnly date, string description, long amountCents, string category, string account, string status, bool isTransfer, string sourceFile, ObservableCollection<string> categoryOptions)
+    public TransactionRowViewModel(Guid transactionId, DateOnly date, string description, long amountCents, string category, string account, string status, bool isTransfer, string sourceFile, ObservableCollection<string> categoryOptions)
     {
+        TransactionId = transactionId;
         PostedDate = date;
         DateText = date.ToString("MM/dd/yyyy", CultureInfo.InvariantCulture);
         Description = description;
@@ -464,6 +567,10 @@ public sealed class TransactionRowViewModel : ViewModelBase
         // Raise StatusColor when SelectedStatus changes
         this.WhenAnyValue(x => x.SelectedStatus)
             .Subscribe(_ => this.RaisePropertyChanged(nameof(StatusColor)));
+
+        // Raise AmountColor when category changes (Transfer detection)
+        this.WhenAnyValue(x => x.SelectedCategory)
+            .Subscribe(_ => this.RaisePropertyChanged(nameof(AmountColor)));
     }
 }
 

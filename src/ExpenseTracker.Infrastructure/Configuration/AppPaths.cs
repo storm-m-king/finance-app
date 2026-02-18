@@ -41,6 +41,13 @@ public static class AppPaths
         => Path.Combine(GetAppDataDirectory(), "expense-tracker.db");
 
     /// <summary>
+    /// Gets the directory where imported CSV files are backed up.
+    /// </summary>
+    /// <returns>The imports backup directory.</returns>
+    public static string GetImportsDirectory()
+        => Path.Combine(GetAppDataDirectory(), "Imports");
+
+    /// <summary>
     /// Gets the path to the schema.sql file used to create the db.
     /// </summary>
     /// <returns>The schema.sql path.</returns>
