@@ -427,10 +427,11 @@ public sealed class TransactionsViewModel : ViewModelBase
 
         var displayEntry = $"{name} ({SelectedNewCategoryType})";
 
-        // Fetch the newly created category to get its Guid
+        // Fetch the newly created category to get its Guid (match both name and type)
         var allCategories = await _categoryService.GetAllCategoriesAsync();
         var newCat = allCategories.FirstOrDefault(c =>
-            string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+            string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(c.Type.ToString(), SelectedNewCategoryType, StringComparison.OrdinalIgnoreCase));
         if (newCat != null)
             _categoryDisplayToId[displayEntry] = newCat.Id;
 
