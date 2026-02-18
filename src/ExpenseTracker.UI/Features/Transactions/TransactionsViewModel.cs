@@ -35,6 +35,8 @@ public sealed class FilterCheckItem : ViewModelBase
 
 public sealed class TransactionsViewModel : ViewModelBase
 {
+    private const string AddNewCategorySentinel = "+ Add New Category";
+
     private readonly ITransactionService _transactionService;
     private readonly ICategoryService _categoryService;
     private readonly IAccountRepository _accountRepository;
@@ -56,8 +58,37 @@ public sealed class TransactionsViewModel : ViewModelBase
     public ObservableCollection<FilterCheckItem> StatusFilters { get; } = new();
     public ObservableCollection<FilterCheckItem> AccountFilters { get; } = new();
 
-    // Category options for per-row editing
+    // Category options for per-row editing (display format: "Name (Type)")
     public ObservableCollection<string> AllCategoryNames { get; } = new();
+
+    // New category dialog
+    private bool _isNewCategoryDialogOpen;
+    public bool IsNewCategoryDialogOpen
+    {
+        get => _isNewCategoryDialogOpen;
+        set => this.RaiseAndSetIfChanged(ref _isNewCategoryDialogOpen, value);
+    }
+
+    private string _newCategoryName = string.Empty;
+    public string NewCategoryName
+    {
+        get => _newCategoryName;
+        set => this.RaiseAndSetIfChanged(ref _newCategoryName, value);
+    }
+
+    private string _selectedNewCategoryType = "Expense";
+    public string SelectedNewCategoryType
+    {
+        get => _selectedNewCategoryType;
+        set => this.RaiseAndSetIfChanged(ref _selectedNewCategoryType, value);
+    }
+
+    public ObservableCollection<string> CategoryTypes { get; } = new() { "Expense", "Income", "Transfer" };
+
+    public ReactiveCommand<Unit, Unit> ConfirmNewCategory { get; }
+    public ReactiveCommand<Unit, Unit> CancelNewCategory { get; }
+
+    private TransactionRowViewModel? _pendingNewCategoryRow;
 
     // Date range presets
     public ObservableCollection<DateRangePreset> DatePresets { get; } = new();
@@ -163,10 +194,10 @@ public sealed class TransactionsViewModel : ViewModelBase
     }
 
     // Lookups populated during load
-    private Dictionary<Guid, string> _categoryLookup = new();
+    private Dictionary<Guid, string> _categoryDisplayLookup = new();
     private Dictionary<Guid, Account> _accountObjectLookup = new();
     private Dictionary<Guid, string> _accountLookup = new();
-    private Dictionary<string, Guid> _categoryNameToId = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, Guid> _categoryDisplayToId = new(StringComparer.OrdinalIgnoreCase);
 
     public TransactionsViewModel(
         ITransactionService transactionService,
@@ -176,6 +207,15 @@ public sealed class TransactionsViewModel : ViewModelBase
         _transactionService = transactionService;
         _categoryService = categoryService;
         _accountRepository = accountRepository;
+
+        var canConfirm = this.WhenAnyValue(x => x.NewCategoryName)
+            .Select(n => !string.IsNullOrWhiteSpace(n));
+        ConfirmNewCategory = ReactiveCommand.CreateFromTask(CreateNewCategoryAsync, canConfirm);
+        CancelNewCategory = ReactiveCommand.Create(() =>
+        {
+            IsNewCategoryDialogOpen = false;
+            _pendingNewCategoryRow = null;
+        });
 
         // Build date presets
         var now = DateTime.Today;
@@ -216,10 +256,8 @@ public sealed class TransactionsViewModel : ViewModelBase
         {
             // Load categories and accounts for display lookups
             var categories = await _categoryService.GetAllCategoriesAsync();
-            _categoryLookup = categories.ToDictionary(c => c.Id, c => c.Name);
-            _categoryNameToId = categories
-                .GroupBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
+            _categoryDisplayLookup = categories.ToDictionary(c => c.Id, c => $"{c.Name} ({c.Type})");
+            _categoryDisplayToId = categories.ToDictionary(c => $"{c.Name} ({c.Type})", c => c.Id, StringComparer.OrdinalIgnoreCase);
 
             var accounts = await _accountRepository.GetAllAsync();
             _accountLookup = accounts.ToDictionary(a => a.Id, a => a.Name);
@@ -242,10 +280,11 @@ public sealed class TransactionsViewModel : ViewModelBase
         IReadOnlyList<Category> categories,
         IReadOnlyList<Transaction> transactions)
     {
-        // Build category names for per-row editing ComboBox
+        // Build category display names for per-row editing ComboBox: "Name (Type)"
         AllCategoryNames.Clear();
         foreach (var cat in categories.OrderBy(c => c.Name))
-            AllCategoryNames.Add(cat.Name);
+            AllCategoryNames.Add($"{cat.Name} ({cat.Type})");
+        AllCategoryNames.Add(AddNewCategorySentinel);
 
         var categoryNames = new HashSet<string>();
         var accountNames = new HashSet<string>();
@@ -253,20 +292,20 @@ public sealed class TransactionsViewModel : ViewModelBase
         _allRows.Clear();
         foreach (var t in transactions)
         {
-            var categoryName = _categoryLookup.TryGetValue(t.CategoryId, out var cn) ? cn : "Uncategorized";
+            var categoryDisplay = _categoryDisplayLookup.TryGetValue(t.CategoryId, out var cd) ? cd : "Uncategorized (Expense)";
             var accountName = _accountLookup.TryGetValue(t.AccountId, out var an) ? an : "Unknown";
             var statusText = FormatStatus(t.Status);
 
             // Normalize amount so positive = income, negative = expense
             var displayAmount = NormalizeAmount(t.AmountCents, t.AccountId);
 
-            categoryNames.Add(categoryName);
+            categoryNames.Add(categoryDisplay);
             accountNames.Add(accountName);
 
             var row = new TransactionRowViewModel(
                 t.Id,
                 t.PostedDate, t.RawDescription, displayAmount,
-                categoryName, accountName, statusText,
+                categoryDisplay, accountName, statusText,
                 t.IsTransfer, t.SourceFileName ?? string.Empty,
                 AllCategoryNames);
 
@@ -277,7 +316,15 @@ public sealed class TransactionsViewModel : ViewModelBase
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Subscribe(async newCategory =>
                 {
-                    if (_categoryNameToId.TryGetValue(newCategory, out var catId))
+                    if (newCategory == AddNewCategorySentinel)
+                    {
+                        _pendingNewCategoryRow = row;
+                        NewCategoryName = string.Empty;
+                        SelectedNewCategoryType = "Expense";
+                        IsNewCategoryDialogOpen = true;
+                        return;
+                    }
+                    if (_categoryDisplayToId.TryGetValue(newCategory, out var catId))
                         await _transactionService.UpdateCategoryAsync(row.TransactionId, catId);
                     FilterTrigger++;
                 });
@@ -328,7 +375,7 @@ public sealed class TransactionsViewModel : ViewModelBase
             FilteredRows.Add(row);
 
         // Update summary
-        var totalAmount = _allRows.Where(r => !string.Equals(r.SelectedCategory, "Transfer", StringComparison.OrdinalIgnoreCase)).Sum(r => r.AmountCents);
+        var totalAmount = _allRows.Where(r => !r.SelectedCategory.Contains("(Transfer)", StringComparison.OrdinalIgnoreCase)).Sum(r => r.AmountCents);
         var dollars = totalAmount / 100m;
         var sign = dollars >= 0 ? "+" : "";
         SummaryText = $"Showing {_allRows.Count} of {_allRows.Count} transactions  •  Net: {sign}{dollars.ToString("C", CultureInfo.GetCultureInfo("en-US"))}";
@@ -369,6 +416,42 @@ public sealed class TransactionsViewModel : ViewModelBase
         }
 
         return rawAmountCents;
+    }
+
+    private async Task CreateNewCategoryAsync()
+    {
+        var name = NewCategoryName.Trim();
+        if (string.IsNullOrEmpty(name)) return;
+
+        await _categoryService.CreateUserCategoryAsync(name, SelectedNewCategoryType);
+
+        var displayEntry = $"{name} ({SelectedNewCategoryType})";
+
+        // Fetch the newly created category to get its Guid
+        var allCategories = await _categoryService.GetAllCategoriesAsync();
+        var newCat = allCategories.FirstOrDefault(c =>
+            string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (newCat != null)
+            _categoryDisplayToId[displayEntry] = newCat.Id;
+
+        // Insert before the sentinel
+        var sentinelIdx = AllCategoryNames.IndexOf(AddNewCategorySentinel);
+        if (sentinelIdx >= 0)
+            AllCategoryNames.Insert(sentinelIdx, displayEntry);
+        else
+            AllCategoryNames.Add(displayEntry);
+
+        // Select the new category on the row that triggered the dialog and persist
+        if (_pendingNewCategoryRow != null)
+        {
+            _pendingNewCategoryRow.SelectedCategory = displayEntry;
+            if (newCat != null)
+                await _transactionService.UpdateCategoryAsync(_pendingNewCategoryRow.TransactionId, newCat.Id);
+        }
+
+        IsNewCategoryDialogOpen = false;
+        _pendingNewCategoryRow = null;
+        NewCategoryName = string.Empty;
     }
 
     private void OnDatePresetSelected(DateRangePreset? preset)
@@ -489,8 +572,8 @@ public sealed class TransactionsViewModel : ViewModelBase
             : checkedAccounts.Count == 1 ? checkedAccounts.First()
             : $"{checkedAccounts.Count} selected";
 
-        // Summary
-        var totalAmount = results.Where(r => !string.Equals(r.SelectedCategory, "Transfer", StringComparison.OrdinalIgnoreCase)).Sum(r => r.AmountCents);
+        // Summary — exclude transfers (display format includes "(Transfer)")
+        var totalAmount = results.Where(r => !r.SelectedCategory.Contains("(Transfer)", StringComparison.OrdinalIgnoreCase)).Sum(r => r.AmountCents);
         var dollars = totalAmount / 100m;
         var sign = dollars >= 0 ? "+" : "";
         SummaryText = $"Showing {results.Count} of {_allRows.Count} transactions  •  Net: {sign}{dollars.ToString("C", CultureInfo.GetCultureInfo("en-US"))}";
@@ -542,7 +625,7 @@ public sealed class TransactionRowViewModel : ViewModelBase
         _ => "#A7B4D1"
     };
 
-    public string AmountColor => IsTransfer || string.Equals(SelectedCategory, "Transfer", StringComparison.OrdinalIgnoreCase)
+    public string AmountColor => IsTransfer || SelectedCategory.Contains("(Transfer)", StringComparison.OrdinalIgnoreCase)
         ? "#A7B4D1" : IsNegative ? "#E05555" : "#3FA97A";
 
     public TransactionRowViewModel(Guid transactionId, DateOnly date, string description, long amountCents, string category, string account, string status, bool isTransfer, string sourceFile, ObservableCollection<string> categoryOptions)
