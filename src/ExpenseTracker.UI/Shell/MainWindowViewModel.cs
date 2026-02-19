@@ -26,6 +26,9 @@ public sealed class MainWindowViewModel : ViewModelBase
     // Add factory for RulesViewModel
     private readonly Func<RulesViewModel> _rulesVmFactory;
 
+    // Factory for TransactionsViewModel
+    private readonly Func<TransactionsViewModel> _transactionsVmFactory;
+
     private ViewModelBase _current = new DashboardViewModel();
 
     private string _currentTimeText = DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture);
@@ -122,12 +125,14 @@ public sealed class MainWindowViewModel : ViewModelBase
         Func<Action<string, string>, ImportViewModel> importVmFactory,
         Func<string, string, Action, Action<int>, PreviewImportViewModel> previewVmFactory,
         Func<CategoriesViewModel> categoriesVmFactory,
-        Func<RulesViewModel> rulesVmFactory)
+        Func<RulesViewModel> rulesVmFactory,
+        Func<TransactionsViewModel> transactionsVmFactory)
     {
         _importVmFactory = importVmFactory;
         _previewVmFactory = previewVmFactory;
         _categoriesVmFactory = categoriesVmFactory;
         _rulesVmFactory = rulesVmFactory;
+        _transactionsVmFactory = transactionsVmFactory;
 
         GoDashboard = ReactiveCommand.Create(() =>
         {
@@ -138,7 +143,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         GoTransactions = ReactiveCommand.Create(() =>
         {
             SelectNav(transactions: true);
-            Current = new TransactionsViewModel();
+            Current = _transactionsVmFactory();
         });
 
         GoImport = ReactiveCommand.Create(() =>

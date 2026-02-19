@@ -476,5 +476,70 @@
     </Border>
   </Border>
 
+  <!-- New Category dialog overlay -->
+  <Border Background="#80000000"
+          IsVisible="{Binding IsNewCategoryDialogOpen}"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch">
+    <Border Background="#0F1A2E"
+            BorderBrush="#1C2A40"
+            BorderThickness="1"
+            CornerRadius="18"
+            Padding="28,24"
+            MaxWidth="420"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+      <StackPanel Spacing="18">
+
+        <TextBlock Text="Add New Category"
+                   FontSize="20"
+                   FontWeight="Bold"/>
+
+        <!-- Name -->
+        <StackPanel Spacing="6">
+          <TextBlock Text="Category Name"
+                     Classes="muted"
+                     FontWeight="SemiBold"/>
+          <TextBox Text="{Binding NewCategoryName}"
+                   Watermark="Enter category name..."
+                   CornerRadius="10"
+                   Padding="12,10"/>
+        </StackPanel>
+
+        <!-- Type -->
+        <StackPanel Spacing="6">
+          <TextBlock Text="Category Type"
+                     Classes="muted"
+                     FontWeight="SemiBold"/>
+          <ComboBox ItemsSource="{Binding CategoryTypes}"
+                    SelectedItem="{Binding SelectedNewCategoryType}"
+                    CornerRadius="10"
+                    Padding="10,8"
+                    HorizontalAlignment="Stretch"/>
+        </StackPanel>
+
+        <!-- Buttons -->
+        <Grid ColumnDefinitions="*,*"
+              ColumnSpacing="12">
+          <Button Grid.Column="0"
+                  Classes="secondaryWide"
+                  Command="{Binding CancelNewCategory}"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center">
+            Cancel
+          </Button>
+          <Button Grid.Column="1"
+                  Classes="primaryWide"
+                  Command="{Binding ConfirmNewCategory}"
+                  HorizontalAlignment="Stretch"
+                  HorizontalContentAlignment="Center">
+            Create
+          </Button>
+        </Grid>
+
+      </StackPanel>
+    </Border>
+  </Border>
+
   </Grid>
 </UserControl>
