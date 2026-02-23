@@ -44,4 +44,14 @@ public interface ITransactionRepository
 
     /// <summary>Deletes a transaction by identifier (hard delete).</summary>
     Task DeleteAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the number of distinct transactions assigned to a given category.
+    /// </summary>
+    Task<int> CountByCategoryAsync(Guid categoryId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Reassigns all transactions from one category to another.
+    /// </summary>
+    Task ReassignCategoryAsync(Guid fromCategoryId, Guid toCategoryId, CancellationToken ct = default);
 }

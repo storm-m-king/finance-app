@@ -146,7 +146,8 @@ internal static class Program
         services.AddTransient<Func<CategoriesViewModel>>(sp =>
             () => new CategoriesViewModel(
                 sp.GetRequiredService<IAppLogger>(),
-                sp.GetRequiredService<ICategoryService>()
+                sp.GetRequiredService<ICategoryService>(),
+                sp.GetRequiredService<ITransactionService>()
             )
         );
 

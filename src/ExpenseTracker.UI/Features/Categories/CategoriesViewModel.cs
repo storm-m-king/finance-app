@@ -101,11 +101,13 @@ public sealed class CategoriesViewModel : ViewModelBase
     // ===== Services =====
     private readonly IAppLogger _appLogger;
     private readonly ICategoryService _categoryService;
+    private readonly ITransactionService _transactionService;
 
-    public CategoriesViewModel(IAppLogger appLogger, ICategoryService categoryService)
+    public CategoriesViewModel(IAppLogger appLogger, ICategoryService categoryService, ITransactionService transactionService)
     {
         _appLogger = appLogger ?? throw new ArgumentNullException(nameof(appLogger));
         _categoryService = categoryService ?? throw new ArgumentNullException(nameof(categoryService));
+        _transactionService = transactionService ?? throw new ArgumentNullException(nameof(transactionService));
 
         // ---- Commands ----
         OpenCreate = ReactiveCommand.Create(() =>
@@ -136,10 +138,19 @@ public sealed class CategoriesViewModel : ViewModelBase
             RaiseModalComputed();
         });
 
-        OpenDelete = ReactiveCommand.Create<CategoryCardViewModel>(cat =>
+        OpenDelete = ReactiveCommand.CreateFromTask<CategoryCardViewModel>(async cat =>
         {
             // prevent deleting locked/system categories (optional)
             if (cat.IsLocked) return;
+
+            // Refresh the transaction count for accurate delete confirmation
+            try
+            {
+                cat.TransactionCount = await _transactionService
+                    .GetTransactionCountByCategoryAsync(cat.Id, CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+            catch { /* keep existing count */ }
 
             DeleteTarget = cat;
 
@@ -250,6 +261,22 @@ public sealed class CategoriesViewModel : ViewModelBase
             categories = Array.Empty<Domain.Category.Category>();
         }
 
+        // Fetch transaction counts per category
+        var counts = new Dictionary<Guid, int>();
+        foreach (var cat in categories)
+        {
+            try
+            {
+                counts[cat.Id] = await _transactionService
+                    .GetTransactionCountByCategoryAsync(cat.Id, CancellationToken.None)
+                    .ConfigureAwait(false);
+            }
+            catch
+            {
+                counts[cat.Id] = 0;
+            }
+        }
+
         // Map and update collections on the UI/main thread.
         RxApp.MainThreadScheduler.Schedule(() =>
         {
@@ -262,7 +289,7 @@ public sealed class CategoriesViewModel : ViewModelBase
                 var vm = new CategoryCardViewModel(
                     id: cat.Id,
                     name: cat.Name,
-                    transactionCount: 0, // transaction counts not provided by service yet
+                    transactionCount: counts.GetValueOrDefault(cat.Id, 0),
                     isLocked: cat.IsSystemCategory,
                     type: cat.Type.ToString());
 
