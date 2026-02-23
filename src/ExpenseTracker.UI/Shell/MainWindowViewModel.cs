@@ -29,7 +29,10 @@ public sealed class MainWindowViewModel : ViewModelBase
     // Factory for TransactionsViewModel
     private readonly Func<TransactionsViewModel> _transactionsVmFactory;
 
-    private ViewModelBase _current = new DashboardViewModel();
+    // Factory for DashboardViewModel
+    private readonly Func<Action?, DashboardViewModel> _dashboardVmFactory;
+
+    private ViewModelBase _current = null!;
 
     private string _currentTimeText = DateTime.Now.ToString("HH:mm", CultureInfo.InvariantCulture);
     public string CurrentTimeText
@@ -126,18 +129,20 @@ public sealed class MainWindowViewModel : ViewModelBase
         Func<string, string, Action, Action<int>, PreviewImportViewModel> previewVmFactory,
         Func<CategoriesViewModel> categoriesVmFactory,
         Func<RulesViewModel> rulesVmFactory,
-        Func<TransactionsViewModel> transactionsVmFactory)
+        Func<TransactionsViewModel> transactionsVmFactory,
+        Func<Action?, DashboardViewModel> dashboardVmFactory)
     {
         _importVmFactory = importVmFactory;
         _previewVmFactory = previewVmFactory;
         _categoriesVmFactory = categoriesVmFactory;
         _rulesVmFactory = rulesVmFactory;
         _transactionsVmFactory = transactionsVmFactory;
+        _dashboardVmFactory = dashboardVmFactory;
 
         GoDashboard = ReactiveCommand.Create(() =>
         {
             SelectNav(dashboard: true);
-            Current = new DashboardViewModel();
+            Current = _dashboardVmFactory(NavigateToNeedsReview);
         });
 
         GoTransactions = ReactiveCommand.Create(() =>
@@ -172,7 +177,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         // ✅ Default selection
         SelectNav(dashboard: true);
-        Current = new DashboardViewModel();
+        Current = _dashboardVmFactory(NavigateToNeedsReview);
 
         var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         timer.Tick += (_, _) =>
@@ -217,6 +222,14 @@ public sealed class MainWindowViewModel : ViewModelBase
 
         // ✅ Create preview VM via DI-backed factory
         Current = _previewVmFactory(selectedFilePathOrUri, mappingProfileKey, onBack, onImport);
+    }
+
+    private void NavigateToNeedsReview()
+    {
+        SelectNav(transactions: true);
+        var vm = _transactionsVmFactory();
+        vm.ApplyStatusFilter("Needs Review");
+        Current = vm;
     }
 
     private void SelectNav(

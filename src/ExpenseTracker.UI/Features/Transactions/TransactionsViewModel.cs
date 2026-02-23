@@ -185,6 +185,25 @@ public sealed class TransactionsViewModel : ViewModelBase
 
     public ReactiveCommand<Unit, Unit> ClearFilters { get; }
 
+    /// <summary>
+    /// Pre-sets the status filter to the given value after data has loaded.
+    /// Called externally for click-through navigation from the Dashboard.
+    /// </summary>
+    public void ApplyStatusFilter(string status)
+    {
+        // Data loads asynchronously; defer until filter items exist
+        Observable.Interval(TimeSpan.FromMilliseconds(100))
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Where(_ => StatusFilters.Count > 0)
+            .Take(1)
+            .Subscribe(_ =>
+            {
+                var item = StatusFilters.FirstOrDefault(f => f.Label == status);
+                if (item != null)
+                    item.IsChecked = true;
+            });
+    }
+
     // Trigger property — incremented to signal a re-filter from checkbox changes
     private int _filterTrigger;
     private int FilterTrigger

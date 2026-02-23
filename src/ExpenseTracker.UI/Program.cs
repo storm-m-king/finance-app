@@ -16,6 +16,7 @@ using ExpenseTracker.UI.Features.Import.ImportView;
 using ExpenseTracker.UI.Features.Import.PreviewView;
 using ExpenseTracker.UI.Features.Rules;
 using ExpenseTracker.UI.Features.Transactions;
+using ExpenseTracker.UI.Features.Dashboard;
 using ExpenseTracker.UI.Shell;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -163,6 +164,13 @@ internal static class Program
                 sp.GetRequiredService<ITransactionService>(),
                 sp.GetRequiredService<ICategoryService>(),
                 sp.GetRequiredService<IAccountRepository>()
+            )
+        );
+
+        services.AddTransient<Func<Action?, DashboardViewModel>>(sp =>
+            navigateToNeedsReview => new DashboardViewModel(
+                sp.GetRequiredService<ITransactionService>(),
+                navigateToNeedsReview
             )
         );
 

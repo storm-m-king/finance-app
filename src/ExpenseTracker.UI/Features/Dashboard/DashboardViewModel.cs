@@ -2,12 +2,29 @@ using System.Collections.ObjectModel;
 using System.Reactive;
 using ReactiveUI;
 using ExpenseTracker.UI.ViewModels;
+using ExpenseTracker.Domain.Transaction;
+using ExpenseTracker.Services.Contracts;
 
 namespace ExpenseTracker.UI.Features.Dashboard;
 
 public sealed class DashboardViewModel : ViewModelBase
 {
-    public int NeedsReviewCount { get; } = 23;
+    private readonly ITransactionService _transactionService;
+    private readonly Action? _navigateToNeedsReview;
+
+    private int _needsReviewCount;
+    public int NeedsReviewCount
+    {
+        get => _needsReviewCount;
+        set => this.RaiseAndSetIfChanged(ref _needsReviewCount, value);
+    }
+
+    private bool _showNeedsReview;
+    public bool ShowNeedsReview
+    {
+        get => _showNeedsReview;
+        set => this.RaiseAndSetIfChanged(ref _showNeedsReview, value);
+    }
 
     public ObservableCollection<MetricCardVm> Metrics { get; } = new()
     {
@@ -32,15 +49,19 @@ public sealed class DashboardViewModel : ViewModelBase
 
     public ReactiveCommand<Unit, Unit> OpenNeedsReview { get; }
 
-    public DashboardViewModel()
+    public DashboardViewModel(
+        ITransactionService transactionService,
+        Action? navigateToNeedsReview = null)
     {
+        _transactionService = transactionService;
+        _navigateToNeedsReview = navigateToNeedsReview;
+
         OpenNeedsReview = ReactiveCommand.Create(() =>
         {
-            // later: navigate to Transactions with Status=NeedsReview
+            _navigateToNeedsReview?.Invoke();
         });
 
         // Seed top categories with computed Percent + mock palette colors
-        // Seed top categories with computed Percent (share of total) + mock palette colors
         var raw = new[]
         {
             new { Name = "Mortgage",      Amount = 2700.00m },
@@ -59,9 +80,30 @@ public sealed class DashboardViewModel : ViewModelBase
             TopCategories.Add(new TopCategoryVm(
                 item.Name,
                 item.Amount,
-                total == 0 ? 0 : (double)(item.Amount / total),  // <-- share of total (adds to 1.0)
+                total == 0 ? 0 : (double)(item.Amount / total),
                 GetCategoryColor(i)
             ));
+        }
+
+        _ = LoadNeedsReviewCountAsync();
+    }
+
+    private async Task LoadNeedsReviewCountAsync()
+    {
+        try
+        {
+            var transactions = await _transactionService.GetAllTransactionsAsync();
+            var count = transactions.Count(t => t.Status == TransactionStatus.NeedsReview);
+
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                NeedsReviewCount = count;
+                ShowNeedsReview = count > 0;
+            });
+        }
+        catch
+        {
+            // Silently handle — pill stays hidden
         }
     }
 
