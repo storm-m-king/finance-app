@@ -659,7 +659,8 @@ public sealed class TransactionsViewModel : ViewModelBase
                 r.Account.Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 r.AmountText.Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 r.DateText.Contains(term, StringComparison.OrdinalIgnoreCase) ||
-                r.SelectedStatus.Contains(term, StringComparison.OrdinalIgnoreCase));
+                r.SelectedStatus.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                r.Notes.Contains(term, StringComparison.OrdinalIgnoreCase));
         }
 
         // Multi-select filters: if any checked, include only those values
