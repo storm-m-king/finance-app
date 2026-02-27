@@ -242,6 +242,13 @@ public sealed class TransactionsViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _sourceFileHeader, value);
     }
 
+    private string _notesHeader = "Notes";
+    public string NotesHeader
+    {
+        get => _notesHeader;
+        set => this.RaiseAndSetIfChanged(ref _notesHeader, value);
+    }
+
     // Trigger property — incremented to signal a re-filter from checkbox changes
     private int _filterTrigger;
     private int FilterTrigger
@@ -645,6 +652,7 @@ public sealed class TransactionsViewModel : ViewModelBase
         AccountHeader = "Account" + Arrow("Account");
         StatusHeader = "Status" + Arrow("Status");
         SourceFileHeader = "Source File" + Arrow("SourceFile");
+        NotesHeader = "Notes" + Arrow("Notes");
     }
 
     private void ClearAllFilters()
@@ -721,6 +729,8 @@ public sealed class TransactionsViewModel : ViewModelBase
                 ("Status", SortDirection.Descending) => filtered.OrderByDescending(r => r.SelectedStatus, StringComparer.OrdinalIgnoreCase),
                 ("SourceFile", SortDirection.Ascending) => filtered.OrderBy(r => r.SourceFile, StringComparer.OrdinalIgnoreCase),
                 ("SourceFile", SortDirection.Descending) => filtered.OrderByDescending(r => r.SourceFile, StringComparer.OrdinalIgnoreCase),
+                ("Notes", SortDirection.Ascending) => filtered.OrderByDescending(r => r.HasNotes).ThenByDescending(r => r.PostedDate),
+                ("Notes", SortDirection.Descending) => filtered.OrderBy(r => r.HasNotes).ThenByDescending(r => r.PostedDate),
                 _ => filtered.OrderByDescending(r => r.PostedDate)
             };
         }

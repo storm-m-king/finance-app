@@ -254,12 +254,12 @@
                             Classes="muted" FontWeight="SemiBold"
                             Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"
                             HorizontalAlignment="Center" HorizontalContentAlignment="Center"/>
-                    <Button Grid.Column="6" Content="Notes"
+                    <Button Grid.Column="6" Content="{Binding NotesHeader}"
+                               Command="{Binding SortByColumnCommand}" CommandParameter="Notes"
                                Classes="muted" FontWeight="SemiBold"
-                               Background="Transparent" BorderThickness="0" Padding="0"
+                               Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"
                                HorizontalAlignment="Center"
-                               IsHitTestVisible="False"
-                               Width="44"/>
+                               Width="54"/>
                   </Grid>
                 </Border>
 
@@ -303,12 +303,12 @@
                             Command="{Binding SortByColumnCommand}" CommandParameter="SourceFile"
                             Classes="muted" FontWeight="SemiBold"
                             Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"/>
-                    <Button Grid.Column="7" Content="Notes"
+                    <Button Grid.Column="7" Content="{Binding NotesHeader}"
+                               Command="{Binding SortByColumnCommand}" CommandParameter="Notes"
                                Classes="muted" FontWeight="SemiBold"
-                               Background="Transparent" BorderThickness="0" Padding="0"
+                               Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"
                                HorizontalAlignment="Center"
-                               IsHitTestVisible="False"
-                               Width="44"/>
+                               Width="54"/>
                   </Grid>
                 </Border>
 
@@ -393,18 +393,33 @@
                               </Panel>
                               <Button.Flyout>
                                 <Flyout Placement="LeftEdgeAlignedTop">
-                                  <Border MinWidth="260" MaxWidth="320" Padding="4">
+                                  <Border Width="300" Padding="4">
                                     <StackPanel Spacing="8">
                                       <TextBlock Text="Notes" FontWeight="Bold" FontSize="14"/>
                                       <TextBox Text="{Binding Notes}"
-                                               Watermark="Add a note..."
+                                               Watermark="Add searchable keywords like refund, business, gift..."
                                                AcceptsReturn="True"
                                                TextWrapping="Wrap"
-                                               MinHeight="80"
-                                               MaxHeight="160"
+                                               Height="100"
                                                CornerRadius="8"
                                                Padding="10,8"
                                                FontSize="13"/>
+                                      <Panel HorizontalAlignment="Right">
+                                        <Button Content="Done"
+                                                Background="#555555" Foreground="White"
+                                                IsVisible="{Binding !HasNotes}"
+                                                Padding="16,6"
+                                                CornerRadius="6"
+                                                FontSize="13"
+                                                Click="CloseNotesFlyout"/>
+                                        <Button Content="Done"
+                                                Background="#1E90FF" Foreground="White"
+                                                IsVisible="{Binding HasNotes}"
+                                                Padding="16,6"
+                                                CornerRadius="6"
+                                                FontSize="13"
+                                                Click="CloseNotesFlyout"/>
+                                      </Panel>
                                     </StackPanel>
                                   </Border>
                                 </Flyout>
@@ -501,18 +516,33 @@
                               </Panel>
                               <Button.Flyout>
                                 <Flyout Placement="LeftEdgeAlignedTop">
-                                  <Border MinWidth="260" MaxWidth="320" Padding="4">
+                                  <Border Width="300" Padding="4">
                                     <StackPanel Spacing="8">
                                       <TextBlock Text="Notes" FontWeight="Bold" FontSize="14"/>
                                       <TextBox Text="{Binding Notes}"
-                                               Watermark="Add a note..."
+                                               Watermark="Add searchable keywords like refund, business, gift..."
                                                AcceptsReturn="True"
                                                TextWrapping="Wrap"
-                                               MinHeight="80"
-                                               MaxHeight="160"
+                                               Height="100"
                                                CornerRadius="8"
                                                Padding="10,8"
                                                FontSize="13"/>
+                                      <Panel HorizontalAlignment="Right">
+                                        <Button Content="Done"
+                                                Background="#555555" Foreground="White"
+                                                IsVisible="{Binding !HasNotes}"
+                                                Padding="16,6"
+                                                CornerRadius="6"
+                                                FontSize="13"
+                                                Click="CloseNotesFlyout"/>
+                                        <Button Content="Done"
+                                                Background="#1E90FF" Foreground="White"
+                                                IsVisible="{Binding HasNotes}"
+                                                Padding="16,6"
+                                                CornerRadius="6"
+                                                FontSize="13"
+                                                Click="CloseNotesFlyout"/>
+                                      </Panel>
                                     </StackPanel>
                                   </Border>
                                 </Flyout>
