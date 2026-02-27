@@ -5,6 +5,7 @@ using ExpenseTracker.Infrastructure.Logging;
 using ExpenseTracker.Infrastructure.Persistence;
 using ExpenseTracker.Infrastructure.Persistence.Repositories;
 using ExpenseTracker.Infrastructure.Persistence.Seed;
+using ExpenseTracker.Infrastructure.Platform;
 using ExpenseTracker.Services;
 using ExpenseTracker.Services.Contracts;
 using ExpenseTracker.Services.Services.FingerPrint;
@@ -19,6 +20,7 @@ using ExpenseTracker.UI.Features.Transactions;
 using ExpenseTracker.UI.Features.Dashboard;
 using ExpenseTracker.UI.Shell;
 using Microsoft.Extensions.DependencyInjection;
+using System.Runtime.InteropServices;
 
 namespace ExpenseTracker.UI;
 
@@ -102,6 +104,14 @@ internal static class Program
         services.AddSingleton<ISqliteConnectionFactory, SqliteConnectionFactory>();
         services.AddSingleton<IImportProfileResolver, ImportProfileResolver>();
         services.AddSingleton<IImportProfileRegistry, ImportProfileRegistry>();
+
+        // Platform-specific services (strategy pattern)
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            services.AddSingleton<IPlatformService, WindowsPlatformService>();
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            services.AddSingleton<IPlatformService, MacPlatformService>();
+        else
+            services.AddSingleton<IPlatformService, LinuxPlatformService>();
 
         // Services 
         services.AddSingleton<IImportService, ImportService>();
