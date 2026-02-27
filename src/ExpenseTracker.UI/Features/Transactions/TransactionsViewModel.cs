@@ -392,7 +392,9 @@ public sealed class TransactionsViewModel : ViewModelBase
                 categoryDisplay, accountName, statusText,
                 t.IsTransfer, t.SourceFileName ?? string.Empty,
                 t.Notes,
-                AllCategoryNames);
+                AllCategoryNames,
+                SetSearchFromClick,
+                SetAccountFilterFromClick);
 
             // Wire category change to persist
             row.WhenAnyValue(x => x.SelectedCategory)
@@ -672,6 +674,17 @@ public sealed class TransactionsViewModel : ViewModelBase
         foreach (var f in AccountFilters) f.IsChecked = false;
     }
 
+    public void SetSearchFromClick(string value)
+    {
+        SearchText = value;
+    }
+
+    public void SetAccountFilterFromClick(string account)
+    {
+        foreach (var f in AccountFilters)
+            f.IsChecked = f.Label == account;
+    }
+
     private void ApplyFilters()
     {
         var filtered = _allRows.AsEnumerable();
@@ -687,6 +700,7 @@ public sealed class TransactionsViewModel : ViewModelBase
                 r.AmountText.Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 r.DateText.Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 r.SelectedStatus.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                r.SourceFile.Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 r.Notes.Contains(term, StringComparison.OrdinalIgnoreCase));
         }
 
@@ -786,6 +800,9 @@ public sealed class TransactionRowViewModel : ViewModelBase
     public string SourceFile { get; }
     public bool IsTransfer { get; }
 
+    public ReactiveCommand<string, Unit> ClickToSearchCommand { get; }
+    public ReactiveCommand<Unit, Unit> ClickAccountCommand { get; }
+
     private string _notes;
     public string Notes
     {
@@ -827,7 +844,7 @@ public sealed class TransactionRowViewModel : ViewModelBase
     public string AmountColor => IsTransfer || SelectedCategory.Contains("(Transfer)", StringComparison.OrdinalIgnoreCase)
         ? "#A7B4D1" : IsNegative ? "#E05555" : "#3FA97A";
 
-    public TransactionRowViewModel(Guid transactionId, DateOnly date, string description, long amountCents, string category, string account, string status, bool isTransfer, string sourceFile, string? notes, ObservableCollection<string> categoryOptions)
+    public TransactionRowViewModel(Guid transactionId, DateOnly date, string description, long amountCents, string category, string account, string status, bool isTransfer, string sourceFile, string? notes, ObservableCollection<string> categoryOptions, Action<string>? onSearchClick, Action<string>? onAccountClick)
     {
         TransactionId = transactionId;
         PostedDate = date;
@@ -846,6 +863,16 @@ public sealed class TransactionRowViewModel : ViewModelBase
         SourceFile = sourceFile;
         _notes = notes ?? string.Empty;
         CategoryOptions = categoryOptions;
+
+        ClickToSearchCommand = ReactiveCommand.Create<string>(value =>
+        {
+            onSearchClick?.Invoke(value);
+        });
+
+        ClickAccountCommand = ReactiveCommand.Create(() =>
+        {
+            onAccountClick?.Invoke(Account);
+        });
 
         // Raise StatusColor when SelectedStatus changes
         this.WhenAnyValue(x => x.SelectedStatus)
