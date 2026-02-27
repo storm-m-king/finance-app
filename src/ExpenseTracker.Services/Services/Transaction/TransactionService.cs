@@ -142,6 +142,10 @@ public sealed class TransactionService : ITransactionService
         await _transactionRepository.AddOrUpdateAsync(transaction, ct).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
+    public Task<int> GetTransactionCountByCategoryAsync(Guid categoryId, CancellationToken ct = default)
+        => _transactionRepository.CountByCategoryAsync(categoryId, ct);
+
     private async Task<Domain.Transaction.Transaction> GetRequiredTransactionAsync(Guid id, CancellationToken ct)
     {
         var transaction = await _transactionRepository.GetByIdAsync(id, ct).ConfigureAwait(false);

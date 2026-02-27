@@ -8,11 +8,17 @@ namespace ExpenseTracker.Services;
 /// </summary>
 public sealed class CategoryService : ICategoryService
 {
-    private readonly ICategoryRepository _repository;
+    private static readonly Guid UncategorizedExpenseId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
-    public CategoryService(ICategoryRepository repository)
+    private readonly ICategoryRepository _repository;
+    private readonly ITransactionRepository _transactionRepository;
+    private readonly IRuleRepository _ruleRepository;
+
+    public CategoryService(ICategoryRepository repository, ITransactionRepository transactionRepository, IRuleRepository ruleRepository)
     {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+        _transactionRepository = transactionRepository ?? throw new ArgumentNullException(nameof(transactionRepository));
+        _ruleRepository = ruleRepository ?? throw new ArgumentNullException(nameof(ruleRepository));
     }
 
     /// <inheritdoc />
@@ -118,6 +124,12 @@ public sealed class CategoryService : ICategoryService
 
         if (existing.IsSystemCategory)
             throw new InvalidOperationException("System categories cannot be deleted.");
+
+        // Delete all rules referencing this category before removing it
+        await _ruleRepository.DeleteByCategoryAsync(id, ct).ConfigureAwait(false);
+
+        // Reassign all transactions from this category to Uncategorized before deleting
+        await _transactionRepository.ReassignCategoryAsync(id, UncategorizedExpenseId, ct).ConfigureAwait(false);
 
         await _repository.DeleteAsync(id, ct).ConfigureAwait(false);
     }

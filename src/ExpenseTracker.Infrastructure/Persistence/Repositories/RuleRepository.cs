@@ -159,6 +159,21 @@ public sealed class RuleRepository : IRuleRepository
             throw new KeyNotFoundException($"No rule exists with id '{id}'.");
     }
 
+    /// <inheritdoc />
+    public async Task DeleteByCategoryAsync(Guid categoryId, CancellationToken ct = default)
+    {
+        if (categoryId == Guid.Empty)
+            throw new ArgumentException("Category id cannot be empty.", nameof(categoryId));
+
+        using var conn = _connectionFactory.CreateOpenConnection();
+        using var cmd = conn.CreateCommand();
+
+        cmd.CommandText = @"DELETE FROM rules WHERE category_id = @category_id;";
+        AddParam(cmd, "@category_id", categoryId.ToString());
+
+        await ExecuteNonQueryAsync(cmd, ct).ConfigureAwait(false);
+    }
+
     // =====================================================
     // Condition Serialization
     // =====================================================

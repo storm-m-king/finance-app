@@ -20,4 +20,7 @@ public interface IRuleRepository
 
     /// <summary>Deletes a rule by identifier (hard delete).</summary>
     Task DeleteAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>Deletes all rules that reference a given category.</summary>
+    Task DeleteByCategoryAsync(Guid categoryId, CancellationToken ct = default);
 }
