@@ -12,6 +12,8 @@ using ExpenseTracker.UI.ViewModels;
 
 namespace ExpenseTracker.UI.Features.Transactions;
 
+public enum SortDirection { None, Ascending, Descending }
+
 /// <summary>
 /// Checkbox item used in multi-select filter flyouts.
 /// </summary>
@@ -185,23 +187,59 @@ public sealed class TransactionsViewModel : ViewModelBase
 
     public ReactiveCommand<Unit, Unit> ClearFilters { get; }
 
-    /// <summary>
-    /// Pre-sets the status filter to the given value after data has loaded.
-    /// Called externally for click-through navigation from the Dashboard.
-    /// </summary>
-    public void ApplyStatusFilter(string status)
+    // Column sorting
+    private string? _sortColumn;
+    private SortDirection _sortDirection = SortDirection.None;
+
+    public ReactiveCommand<string, Unit> SortByColumnCommand { get; }
+
+    private string _dateHeader = "Date";
+    public string DateHeader
     {
-        // Data loads asynchronously; defer until filter items exist
-        Observable.Interval(TimeSpan.FromMilliseconds(100))
-            .ObserveOn(RxApp.MainThreadScheduler)
-            .Where(_ => StatusFilters.Count > 0)
-            .Take(1)
-            .Subscribe(_ =>
-            {
-                var item = StatusFilters.FirstOrDefault(f => f.Label == status);
-                if (item != null)
-                    item.IsChecked = true;
-            });
+        get => _dateHeader;
+        set => this.RaiseAndSetIfChanged(ref _dateHeader, value);
+    }
+
+    private string _descriptionHeader = "Description";
+    public string DescriptionHeader
+    {
+        get => _descriptionHeader;
+        set => this.RaiseAndSetIfChanged(ref _descriptionHeader, value);
+    }
+
+    private string _amountHeader = "Amount";
+    public string AmountHeader
+    {
+        get => _amountHeader;
+        set => this.RaiseAndSetIfChanged(ref _amountHeader, value);
+    }
+
+    private string _categoryHeader = "Category";
+    public string CategoryHeader
+    {
+        get => _categoryHeader;
+        set => this.RaiseAndSetIfChanged(ref _categoryHeader, value);
+    }
+
+    private string _accountHeader = "Account";
+    public string AccountHeader
+    {
+        get => _accountHeader;
+        set => this.RaiseAndSetIfChanged(ref _accountHeader, value);
+    }
+
+    private string _statusHeader = "Status";
+    public string StatusHeader
+    {
+        get => _statusHeader;
+        set => this.RaiseAndSetIfChanged(ref _statusHeader, value);
+    }
+
+    private string _sourceFileHeader = "Source File";
+    public string SourceFileHeader
+    {
+        get => _sourceFileHeader;
+        set => this.RaiseAndSetIfChanged(ref _sourceFileHeader, value);
     }
 
     // Trigger property — incremented to signal a re-filter from checkbox changes
@@ -249,6 +287,7 @@ public sealed class TransactionsViewModel : ViewModelBase
         DatePresets.Add(new DateRangePreset("Custom Range", null, null, true));
 
         ClearFilters = ReactiveCommand.Create(ClearAllFilters);
+        SortByColumnCommand = ReactiveCommand.Create<string>(SortByColumn);
         ApplyCustomDateRange = ReactiveCommand.Create(ApplyCustomRange);
         CancelCustomDateRange = ReactiveCommand.Create(() => { IsCustomDateDialogOpen = false; });
         SelectPresetCommand = ReactiveCommand.Create<DateRangePreset>(preset => SelectedDatePreset = preset);
@@ -267,6 +306,25 @@ public sealed class TransactionsViewModel : ViewModelBase
 
         // Load data — no default date filter applied
         _ = LoadTransactionsAsync();
+    }
+    
+    /// <summary>
+    /// Pre-sets the status filter to the given value after data has loaded.
+    /// Called externally for click-through navigation from the Dashboard.
+    /// </summary>
+    public void ApplyStatusFilter(string status)
+    {
+        // Data loads asynchronously; defer until filter items exist
+        Observable.Interval(TimeSpan.FromMilliseconds(100))
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Where(_ => StatusFilters.Count > 0)
+            .Take(1)
+            .Subscribe(_ =>
+            {
+                var item = StatusFilters.FirstOrDefault(f => f.Label == status);
+                if (item != null)
+                    item.IsChecked = true;
+            });
     }
 
     private async Task LoadTransactionsAsync()
@@ -326,6 +384,7 @@ public sealed class TransactionsViewModel : ViewModelBase
                 t.PostedDate, t.RawDescription, displayAmount,
                 categoryDisplay, accountName, statusText,
                 t.IsTransfer, t.SourceFileName ?? string.Empty,
+                t.Notes,
                 AllCategoryNames);
 
             // Wire category change to persist
@@ -372,6 +431,17 @@ public sealed class TransactionsViewModel : ViewModelBase
                     var status = ParseStatus(newStatus);
                     await _transactionService.UpdateStatusAsync(row.TransactionId, status);
                     FilterTrigger++;
+                });
+
+            // Wire notes change to persist
+            row.WhenAnyValue(x => x.Notes)
+                .Skip(1)
+                .Throttle(TimeSpan.FromMilliseconds(500))
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe(async newNotes =>
+                {
+                    var value = string.IsNullOrWhiteSpace(newNotes) ? null : newNotes.Trim();
+                    await _transactionService.UpdateNotesAsync(row.TransactionId, value);
                 });
 
             _allRows.Add(row);
@@ -537,6 +607,46 @@ public sealed class TransactionsViewModel : ViewModelBase
             .Subscribe(_ => FilterTrigger++);
     }
 
+    private void SortByColumn(string column)
+    {
+        if (_sortColumn == column)
+        {
+            // Cycle: Ascending → Descending → None
+            _sortDirection = _sortDirection switch
+            {
+                SortDirection.Ascending => SortDirection.Descending,
+                SortDirection.Descending => SortDirection.None,
+                _ => SortDirection.Ascending
+            };
+            if (_sortDirection == SortDirection.None)
+                _sortColumn = null;
+        }
+        else
+        {
+            _sortColumn = column;
+            _sortDirection = SortDirection.Ascending;
+        }
+
+        UpdateHeaderLabels();
+        FilterTrigger++;
+    }
+
+    private void UpdateHeaderLabels()
+    {
+        string Arrow(string col) =>
+            _sortColumn == col
+                ? _sortDirection == SortDirection.Ascending ? " ↑" : " ↓"
+                : string.Empty;
+
+        DateHeader = "Date" + Arrow("Date");
+        DescriptionHeader = "Description" + Arrow("Description");
+        AmountHeader = "Amount" + Arrow("Amount");
+        CategoryHeader = "Category" + Arrow("Category");
+        AccountHeader = "Account" + Arrow("Account");
+        StatusHeader = "Status" + Arrow("Status");
+        SourceFileHeader = "Source File" + Arrow("SourceFile");
+    }
+
     private void ClearAllFilters()
     {
         SearchText = string.Empty;
@@ -544,6 +654,10 @@ public sealed class TransactionsViewModel : ViewModelBase
         _dateFrom = null;
         _dateTo = null;
         DateRangeLabel = string.Empty;
+
+        _sortColumn = null;
+        _sortDirection = SortDirection.None;
+        UpdateHeaderLabels();
 
         foreach (var f in CategoryFilters) f.IsChecked = false;
         foreach (var f in StatusFilters) f.IsChecked = false;
@@ -564,7 +678,8 @@ public sealed class TransactionsViewModel : ViewModelBase
                 r.Account.Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 r.AmountText.Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 r.DateText.Contains(term, StringComparison.OrdinalIgnoreCase) ||
-                r.SelectedStatus.Contains(term, StringComparison.OrdinalIgnoreCase));
+                r.SelectedStatus.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                r.Notes.Contains(term, StringComparison.OrdinalIgnoreCase));
         }
 
         // Multi-select filters: if any checked, include only those values
@@ -586,8 +701,35 @@ public sealed class TransactionsViewModel : ViewModelBase
         if (_dateTo.HasValue)
             filtered = filtered.Where(r => r.PostedDate <= _dateTo.Value);
 
-        // Default sort: date descending
-        var results = filtered.OrderByDescending(r => r.PostedDate).ToList();
+        // Sort based on active column or default (date descending)
+        IEnumerable<TransactionRowViewModel> sorted;
+        if (_sortColumn != null && _sortDirection != SortDirection.None)
+        {
+            sorted = (_sortColumn, _sortDirection) switch
+            {
+                ("Date", SortDirection.Ascending) => filtered.OrderBy(r => r.PostedDate),
+                ("Date", SortDirection.Descending) => filtered.OrderByDescending(r => r.PostedDate),
+                ("Description", SortDirection.Ascending) => filtered.OrderBy(r => r.Description, StringComparer.OrdinalIgnoreCase),
+                ("Description", SortDirection.Descending) => filtered.OrderByDescending(r => r.Description, StringComparer.OrdinalIgnoreCase),
+                ("Amount", SortDirection.Ascending) => filtered.OrderBy(r => r.AmountCents),
+                ("Amount", SortDirection.Descending) => filtered.OrderByDescending(r => r.AmountCents),
+                ("Category", SortDirection.Ascending) => filtered.OrderBy(r => r.SelectedCategory, StringComparer.OrdinalIgnoreCase),
+                ("Category", SortDirection.Descending) => filtered.OrderByDescending(r => r.SelectedCategory, StringComparer.OrdinalIgnoreCase),
+                ("Account", SortDirection.Ascending) => filtered.OrderBy(r => r.Account, StringComparer.OrdinalIgnoreCase),
+                ("Account", SortDirection.Descending) => filtered.OrderByDescending(r => r.Account, StringComparer.OrdinalIgnoreCase),
+                ("Status", SortDirection.Ascending) => filtered.OrderBy(r => r.SelectedStatus, StringComparer.OrdinalIgnoreCase),
+                ("Status", SortDirection.Descending) => filtered.OrderByDescending(r => r.SelectedStatus, StringComparer.OrdinalIgnoreCase),
+                ("SourceFile", SortDirection.Ascending) => filtered.OrderBy(r => r.SourceFile, StringComparer.OrdinalIgnoreCase),
+                ("SourceFile", SortDirection.Descending) => filtered.OrderByDescending(r => r.SourceFile, StringComparer.OrdinalIgnoreCase),
+                _ => filtered.OrderByDescending(r => r.PostedDate)
+            };
+        }
+        else
+        {
+            sorted = filtered.OrderByDescending(r => r.PostedDate);
+        }
+
+        var results = sorted.ToList();
 
         FilteredRows.Clear();
         foreach (var row in results)
@@ -634,6 +776,19 @@ public sealed class TransactionRowViewModel : ViewModelBase
     public string SourceFile { get; }
     public bool IsTransfer { get; }
 
+    private string _notes;
+    public string Notes
+    {
+        get => _notes;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _notes, value);
+            this.RaisePropertyChanged(nameof(HasNotes));
+        }
+    }
+
+    public bool HasNotes => !string.IsNullOrWhiteSpace(Notes);
+
     public ObservableCollection<string> StatusOptions { get; } = new() { "Needs Review", "Reviewed", "Ignored" };
     public ObservableCollection<string> CategoryOptions { get; }
 
@@ -662,7 +817,7 @@ public sealed class TransactionRowViewModel : ViewModelBase
     public string AmountColor => IsTransfer || SelectedCategory.Contains("(Transfer)", StringComparison.OrdinalIgnoreCase)
         ? "#A7B4D1" : IsNegative ? "#E05555" : "#3FA97A";
 
-    public TransactionRowViewModel(Guid transactionId, DateOnly date, string description, long amountCents, string category, string account, string status, bool isTransfer, string sourceFile, ObservableCollection<string> categoryOptions)
+    public TransactionRowViewModel(Guid transactionId, DateOnly date, string description, long amountCents, string category, string account, string status, bool isTransfer, string sourceFile, string? notes, ObservableCollection<string> categoryOptions)
     {
         TransactionId = transactionId;
         PostedDate = date;
@@ -679,6 +834,7 @@ public sealed class TransactionRowViewModel : ViewModelBase
         _selectedStatus = status;
         IsTransfer = isTransfer;
         SourceFile = sourceFile;
+        _notes = notes ?? string.Empty;
         CategoryOptions = categoryOptions;
 
         // Raise StatusColor when SelectedStatus changes

@@ -225,23 +225,41 @@
                         BorderThickness="0,0,0,1"
                         Padding="18,14"
                         IsVisible="{Binding !ShowSourceFile}">
-                  <Grid ColumnDefinitions="1.2*,2.5*,1.2*,1.8*,1.5*,1.3*"
+                  <Grid ColumnDefinitions="1.2*,2.5*,1.2*,1.8*,1.5*,1.3*,Auto"
                         ColumnSpacing="12">
-                    <TextBlock Grid.Column="0" Text="Date"
-                               Classes="muted" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Column="1" Text="Description"
-                               Classes="muted" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Column="2" Text="Amount"
+                    <Button Grid.Column="0" Content="{Binding DateHeader}"
+                            Command="{Binding SortByColumnCommand}" CommandParameter="Date"
+                            Classes="muted" FontWeight="SemiBold"
+                            Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"/>
+                    <Button Grid.Column="1" Content="{Binding DescriptionHeader}"
+                            Command="{Binding SortByColumnCommand}" CommandParameter="Description"
+                            Classes="muted" FontWeight="SemiBold"
+                            Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"/>
+                    <Button Grid.Column="2" Content="{Binding AmountHeader}"
+                            Command="{Binding SortByColumnCommand}" CommandParameter="Amount"
+                            Classes="muted" FontWeight="SemiBold"
+                            Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"
+                            HorizontalAlignment="Right" HorizontalContentAlignment="Right"/>
+                    <Button Grid.Column="3" Content="{Binding CategoryHeader}"
+                            Command="{Binding SortByColumnCommand}" CommandParameter="Category"
+                            Classes="muted" FontWeight="SemiBold"
+                            Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"
+                            Margin="8,0,0,0"/>
+                    <Button Grid.Column="4" Content="{Binding AccountHeader}"
+                            Command="{Binding SortByColumnCommand}" CommandParameter="Account"
+                            Classes="muted" FontWeight="SemiBold"
+                            Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"/>
+                    <Button Grid.Column="5" Content="{Binding StatusHeader}"
+                            Command="{Binding SortByColumnCommand}" CommandParameter="Status"
+                            Classes="muted" FontWeight="SemiBold"
+                            Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"
+                            HorizontalAlignment="Center" HorizontalContentAlignment="Center"/>
+                    <Button Grid.Column="6" Content="Notes"
                                Classes="muted" FontWeight="SemiBold"
-                               HorizontalAlignment="Right"/>
-                    <TextBlock Grid.Column="3" Text="Category"
-                               Classes="muted" FontWeight="SemiBold"
-                               Margin="8,0,0,0"/>
-                    <TextBlock Grid.Column="4" Text="Account"
-                               Classes="muted" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Column="5" Text="Status"
-                               Classes="muted" FontWeight="SemiBold"
-                               HorizontalAlignment="Center"/>
+                               Background="Transparent" BorderThickness="0" Padding="0"
+                               HorizontalAlignment="Center"
+                               IsHitTestVisible="False"
+                               Width="44"/>
                   </Grid>
                 </Border>
 
@@ -252,25 +270,45 @@
                         BorderThickness="0,0,0,1"
                         Padding="18,14"
                         IsVisible="{Binding ShowSourceFile}">
-                  <Grid ColumnDefinitions="1.2*,2*,1.2*,1.6*,1.3*,1.2*,2.5*"
+                  <Grid ColumnDefinitions="1.2*,2*,1.2*,1.6*,1.3*,1.2*,2.5*,Auto"
                         ColumnSpacing="12">
-                    <TextBlock Grid.Column="0" Text="Date"
-                               Classes="muted" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Column="1" Text="Description"
-                               Classes="muted" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Column="2" Text="Amount"
+                    <Button Grid.Column="0" Content="{Binding DateHeader}"
+                            Command="{Binding SortByColumnCommand}" CommandParameter="Date"
+                            Classes="muted" FontWeight="SemiBold"
+                            Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"/>
+                    <Button Grid.Column="1" Content="{Binding DescriptionHeader}"
+                            Command="{Binding SortByColumnCommand}" CommandParameter="Description"
+                            Classes="muted" FontWeight="SemiBold"
+                            Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"/>
+                    <Button Grid.Column="2" Content="{Binding AmountHeader}"
+                            Command="{Binding SortByColumnCommand}" CommandParameter="Amount"
+                            Classes="muted" FontWeight="SemiBold"
+                            Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"
+                            HorizontalAlignment="Right" HorizontalContentAlignment="Right"/>
+                    <Button Grid.Column="3" Content="{Binding CategoryHeader}"
+                            Command="{Binding SortByColumnCommand}" CommandParameter="Category"
+                            Classes="muted" FontWeight="SemiBold"
+                            Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"
+                            Margin="8,0,0,0"/>
+                    <Button Grid.Column="4" Content="{Binding AccountHeader}"
+                            Command="{Binding SortByColumnCommand}" CommandParameter="Account"
+                            Classes="muted" FontWeight="SemiBold"
+                            Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"/>
+                    <Button Grid.Column="5" Content="{Binding StatusHeader}"
+                            Command="{Binding SortByColumnCommand}" CommandParameter="Status"
+                            Classes="muted" FontWeight="SemiBold"
+                            Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"
+                            HorizontalAlignment="Center" HorizontalContentAlignment="Center"/>
+                    <Button Grid.Column="6" Content="{Binding SourceFileHeader}"
+                            Command="{Binding SortByColumnCommand}" CommandParameter="SourceFile"
+                            Classes="muted" FontWeight="SemiBold"
+                            Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand"/>
+                    <Button Grid.Column="7" Content="Notes"
                                Classes="muted" FontWeight="SemiBold"
-                               HorizontalAlignment="Right"/>
-                    <TextBlock Grid.Column="3" Text="Category"
-                               Classes="muted" FontWeight="SemiBold"
-                               Margin="8,0,0,0"/>
-                    <TextBlock Grid.Column="4" Text="Account"
-                               Classes="muted" FontWeight="SemiBold"/>
-                    <TextBlock Grid.Column="5" Text="Status"
-                               Classes="muted" FontWeight="SemiBold"
-                               HorizontalAlignment="Center"/>
-                    <TextBlock Grid.Column="6" Text="Source File"
-                               Classes="muted" FontWeight="SemiBold"/>
+                               Background="Transparent" BorderThickness="0" Padding="0"
+                               HorizontalAlignment="Center"
+                               IsHitTestVisible="False"
+                               Width="44"/>
                   </Grid>
                 </Border>
 
@@ -304,7 +342,7 @@
                         <Border BorderBrush="#1C2A40"
                                 BorderThickness="0,0,0,1"
                                 Padding="18,8">
-                          <Grid ColumnDefinitions="1.2*,2.5*,1.2*,1.8*,1.5*,1.3*"
+                          <Grid ColumnDefinitions="1.2*,2.5*,1.2*,1.8*,1.5*,1.3*,Auto"
                                 ColumnSpacing="12"
                                 VerticalAlignment="Center">
                             <TextBlock Grid.Column="0" Text="{Binding DateText}"
@@ -332,6 +370,46 @@
                                       CornerRadius="10" Padding="6,3" FontSize="11" FontWeight="SemiBold"
                                       Foreground="{Binding StatusColor}"
                                       HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
+                            <!-- Notes icon with flyout -->
+                            <Button Grid.Column="6"
+                                    Background="Transparent" BorderThickness="0"
+                                    Padding="4" Cursor="Hand"
+                                    Width="28" HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                              <Button.Styles>
+                                <Style Selector="Button">
+                                  <Setter Property="Opacity" Value="0.4"/>
+                                </Style>
+                                <Style Selector="Button:pointerover">
+                                  <Setter Property="Opacity" Value="1"/>
+                                </Style>
+                              </Button.Styles>
+                              <Panel>
+                                <TextBlock Text="📝" FontSize="14"/>
+                                <Border Background="#3FA97A" CornerRadius="4" Width="8" Height="8"
+                                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                                        Margin="0,-2,-2,0"
+                                        IsVisible="{Binding HasNotes}"/>
+                              </Panel>
+                              <Button.Flyout>
+                                <Flyout Placement="LeftEdgeAlignedTop">
+                                  <Border MinWidth="260" MaxWidth="320" Padding="4">
+                                    <StackPanel Spacing="8">
+                                      <TextBlock Text="Notes" FontWeight="Bold" FontSize="14"/>
+                                      <TextBox Text="{Binding Notes}"
+                                               Watermark="Add a note..."
+                                               AcceptsReturn="True"
+                                               TextWrapping="Wrap"
+                                               MinHeight="80"
+                                               MaxHeight="160"
+                                               CornerRadius="8"
+                                               Padding="10,8"
+                                               FontSize="13"/>
+                                    </StackPanel>
+                                  </Border>
+                                </Flyout>
+                              </Button.Flyout>
+                            </Button>
                           </Grid>
                         </Border>
                       </DataTemplate>
@@ -369,7 +447,7 @@
                         <Border BorderBrush="#1C2A40"
                                 BorderThickness="0,0,0,1"
                                 Padding="18,8">
-                          <Grid ColumnDefinitions="1.2*,2*,1.2*,1.6*,1.3*,1.2*,2.5*"
+                          <Grid ColumnDefinitions="1.2*,2*,1.2*,1.6*,1.3*,1.2*,2.5*,Auto"
                                 ColumnSpacing="12"
                                 VerticalAlignment="Center">
                             <TextBlock Grid.Column="0" Text="{Binding DateText}"
@@ -400,6 +478,46 @@
                             <TextBlock Grid.Column="6" Text="{Binding SourceFile}"
                                        Classes="muted" FontSize="11"
                                        TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                            <!-- Notes icon with flyout -->
+                            <Button Grid.Column="7"
+                                    Background="Transparent" BorderThickness="0"
+                                    Padding="4" Cursor="Hand"
+                                    Width="28" HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                              <Button.Styles>
+                                <Style Selector="Button">
+                                  <Setter Property="Opacity" Value="0.4"/>
+                                </Style>
+                                <Style Selector="Button:pointerover">
+                                  <Setter Property="Opacity" Value="1"/>
+                                </Style>
+                              </Button.Styles>
+                              <Panel>
+                                <TextBlock Text="📝" FontSize="14"/>
+                                <Border Background="#3FA97A" CornerRadius="4" Width="8" Height="8"
+                                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                                        Margin="0,-2,-2,0"
+                                        IsVisible="{Binding HasNotes}"/>
+                              </Panel>
+                              <Button.Flyout>
+                                <Flyout Placement="LeftEdgeAlignedTop">
+                                  <Border MinWidth="260" MaxWidth="320" Padding="4">
+                                    <StackPanel Spacing="8">
+                                      <TextBlock Text="Notes" FontWeight="Bold" FontSize="14"/>
+                                      <TextBox Text="{Binding Notes}"
+                                               Watermark="Add a note..."
+                                               AcceptsReturn="True"
+                                               TextWrapping="Wrap"
+                                               MinHeight="80"
+                                               MaxHeight="160"
+                                               CornerRadius="8"
+                                               Padding="10,8"
+                                               FontSize="13"/>
+                                    </StackPanel>
+                                  </Border>
+                                </Flyout>
+                              </Button.Flyout>
+                            </Button>
                           </Grid>
                         </Border>
                       </DataTemplate>
