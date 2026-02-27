@@ -11,27 +11,14 @@
       <Grid RowDefinitions="Auto,Auto,Auto"
             RowSpacing="18">
 
-        <!-- Header + Clear Filters -->
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-          <StackPanel Grid.Column="0" Spacing="6">
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Spacing="6">
             <TextBlock Text="Transactions"
                        FontSize="32"
                        FontWeight="Bold" />
             <TextBlock Text="View and filter all imported transactions"
                        Classes="muted" />
-          </StackPanel>
-
-          <Button Grid.Column="1"
-                  Background="#1C2A40"
-                  Foreground="#A7B4D1"
-                  CornerRadius="12"
-                  Padding="14,10"
-                  FontWeight="SemiBold"
-                  IsVisible="{Binding HasActiveFilters}"
-                  Command="{Binding ClearFilters}">
-            ✕  Clear Filters
-          </Button>
-        </Grid>
+        </StackPanel>
 
         <!-- Filters card -->
         <Border Grid.Row="1" Classes="card">
@@ -191,11 +178,32 @@
                          Margin="0,4,0,0"/>
             </StackPanel>
 
-            <!-- Options -->
-            <CheckBox IsChecked="{Binding ShowSourceFile}"
-                      Content="Include Source File"
+            <!-- Options + Clear Filters -->
+            <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0">
+              <CheckBox Grid.Column="0"
+                        IsChecked="{Binding ShowSourceFile}"
+                        Content="Include Source File"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"/>
+
+              <Button Grid.Column="1"
+                      Background="#1C2A40"
+                      Foreground="#A7B4D1"
+                      CornerRadius="12"
+                      Padding="14,10"
                       FontWeight="SemiBold"
-                      Margin="0,2,0,0"/>
+                      Cursor="Hand"
+                      VerticalAlignment="Center"
+                      IsEnabled="{Binding HasActiveFilters}"
+                      Command="{Binding ClearFilters}">
+                <Button.Styles>
+                  <Style Selector="Button:disabled">
+                    <Setter Property="Opacity" Value="0"/>
+                  </Style>
+                </Button.Styles>
+                ✕  Clear Filters
+              </Button>
+            </Grid>
 
           </StackPanel>
         </Border>
@@ -345,14 +353,55 @@
                           <Grid ColumnDefinitions="1.2*,2.5*,1.2*,1.8*,1.5*,1.3*,Auto"
                                 ColumnSpacing="12"
                                 VerticalAlignment="Center">
-                            <TextBlock Grid.Column="0" Text="{Binding DateText}"
-                                       FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Description}"
-                                       TextTrimming="CharacterEllipsis"
-                                       FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="2" Text="{Binding AmountText}"
-                                       HorizontalAlignment="Right" FontWeight="Bold" FontSize="13"
-                                       Foreground="{Binding AmountColor}" VerticalAlignment="Center"/>
+                            <Button Grid.Column="0" Background="Transparent" BorderThickness="0"
+                                    Padding="0" Cursor="Hand"
+                                    Command="{Binding ClickToSearchCommand}" CommandParameter="{Binding DateText}"
+                                    HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding DateText}"
+                                         FontWeight="SemiBold" FontSize="13"/>
+                            </Button>
+                            <Panel Grid.Column="1" Background="Transparent">
+                              <Panel.Styles>
+                                <Style Selector="Panel > Button.copyBtn">
+                                  <Setter Property="IsVisible" Value="False"/>
+                                </Style>
+                                <Style Selector="Panel:pointerover > Button.copyBtn">
+                                  <Setter Property="IsVisible" Value="True"/>
+                                </Style>
+                              </Panel.Styles>
+                              <Button Background="Transparent" BorderThickness="0"
+                                      Padding="0" Cursor="Hand"
+                                      Command="{Binding ClickToSearchCommand}" CommandParameter="{Binding Description}"
+                                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                      VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Description}"
+                                           TextTrimming="CharacterEllipsis"
+                                           FontWeight="SemiBold" FontSize="13"/>
+                              </Button>
+                              <Button Classes="copyBtn"
+                                      Background="#1C2A40" BorderThickness="0"
+                                      Width="24" Height="24" Padding="0"
+                                      CornerRadius="4" Cursor="Hand"
+                                      HorizontalAlignment="Right" VerticalAlignment="Center"
+                                      Click="CopyDescription"
+                                      ToolTip.Tip="Copy">
+                                <Button.Styles>
+                                  <Style Selector="Button:pointerover">
+                                    <Setter Property="Background" Value="#2A3A54"/>
+                                  </Style>
+                                </Button.Styles>
+                                <PathIcon Width="12" Height="12" Foreground="#A7B4D1"
+                                          Data="M4,2 L4,0 L14,0 L14,10 L12,10 L12,2 Z M0,4 L10,4 L10,14 L0,14 Z M2,6 L8,6 L8,12 L2,12 Z"/>
+                              </Button>
+                            </Panel>
+                            <Button Grid.Column="2" Background="Transparent" BorderThickness="0"
+                                    Padding="0" Cursor="Hand"
+                                    Command="{Binding ClickToSearchCommand}" CommandParameter="{Binding AmountText}"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding AmountText}"
+                                         FontWeight="Bold" FontSize="13"
+                                         Foreground="{Binding AmountColor}"/>
+                            </Button>
                             <ComboBox Grid.Column="3"
                                       ItemsSource="{Binding CategoryOptions}"
                                       SelectedItem="{Binding SelectedCategory}"
@@ -360,9 +409,14 @@
                                       CornerRadius="10" Padding="8,4" Margin="8,0,0,0"
                                       FontSize="12" FontWeight="SemiBold"
                                       HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="4" Text="{Binding Account}"
-                                       Classes="muted" FontWeight="SemiBold" FontSize="12"
-                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                            <Button Grid.Column="4" Background="Transparent" BorderThickness="0"
+                                    Padding="0" Cursor="Hand"
+                                    Command="{Binding ClickAccountCommand}"
+                                    HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding Account}"
+                                         Classes="muted" FontWeight="SemiBold" FontSize="12"
+                                         TextTrimming="CharacterEllipsis"/>
+                            </Button>
                             <ComboBox Grid.Column="5"
                                       ItemsSource="{Binding StatusOptions}"
                                       SelectedItem="{Binding SelectedStatus}"
@@ -465,14 +519,55 @@
                           <Grid ColumnDefinitions="1.2*,2*,1.2*,1.6*,1.3*,1.2*,2.5*,Auto"
                                 ColumnSpacing="12"
                                 VerticalAlignment="Center">
-                            <TextBlock Grid.Column="0" Text="{Binding DateText}"
-                                       FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding Description}"
-                                       TextTrimming="CharacterEllipsis"
-                                       FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="2" Text="{Binding AmountText}"
-                                       HorizontalAlignment="Right" FontWeight="Bold" FontSize="13"
-                                       Foreground="{Binding AmountColor}" VerticalAlignment="Center"/>
+                            <Button Grid.Column="0" Background="Transparent" BorderThickness="0"
+                                    Padding="0" Cursor="Hand"
+                                    Command="{Binding ClickToSearchCommand}" CommandParameter="{Binding DateText}"
+                                    HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding DateText}"
+                                         FontWeight="SemiBold" FontSize="13"/>
+                            </Button>
+                            <Panel Grid.Column="1" Background="Transparent">
+                              <Panel.Styles>
+                                <Style Selector="Panel > Button.copyBtn">
+                                  <Setter Property="IsVisible" Value="False"/>
+                                </Style>
+                                <Style Selector="Panel:pointerover > Button.copyBtn">
+                                  <Setter Property="IsVisible" Value="True"/>
+                                </Style>
+                              </Panel.Styles>
+                              <Button Background="Transparent" BorderThickness="0"
+                                      Padding="0" Cursor="Hand"
+                                      Command="{Binding ClickToSearchCommand}" CommandParameter="{Binding Description}"
+                                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                      VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Description}"
+                                           TextTrimming="CharacterEllipsis"
+                                           FontWeight="SemiBold" FontSize="13"/>
+                              </Button>
+                              <Button Classes="copyBtn"
+                                      Background="#1C2A40" BorderThickness="0"
+                                      Width="24" Height="24" Padding="0"
+                                      CornerRadius="4" Cursor="Hand"
+                                      HorizontalAlignment="Right" VerticalAlignment="Center"
+                                      Click="CopyDescription"
+                                      ToolTip.Tip="Copy">
+                                <Button.Styles>
+                                  <Style Selector="Button:pointerover">
+                                    <Setter Property="Background" Value="#2A3A54"/>
+                                  </Style>
+                                </Button.Styles>
+                                <PathIcon Width="12" Height="12" Foreground="#A7B4D1"
+                                          Data="M4,2 L4,0 L14,0 L14,10 L12,10 L12,2 Z M0,4 L10,4 L10,14 L0,14 Z M2,6 L8,6 L8,12 L2,12 Z"/>
+                              </Button>
+                            </Panel>
+                            <Button Grid.Column="2" Background="Transparent" BorderThickness="0"
+                                    Padding="0" Cursor="Hand"
+                                    Command="{Binding ClickToSearchCommand}" CommandParameter="{Binding AmountText}"
+                                    HorizontalAlignment="Right" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding AmountText}"
+                                         FontWeight="Bold" FontSize="13"
+                                         Foreground="{Binding AmountColor}"/>
+                            </Button>
                             <ComboBox Grid.Column="3"
                                       ItemsSource="{Binding CategoryOptions}"
                                       SelectedItem="{Binding SelectedCategory}"
@@ -480,9 +575,14 @@
                                       CornerRadius="10" Padding="8,4" Margin="8,0,0,0"
                                       FontSize="12" FontWeight="SemiBold"
                                       HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="4" Text="{Binding Account}"
-                                       Classes="muted" FontWeight="SemiBold" FontSize="12"
-                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                            <Button Grid.Column="4" Background="Transparent" BorderThickness="0"
+                                    Padding="0" Cursor="Hand"
+                                    Command="{Binding ClickAccountCommand}"
+                                    HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding Account}"
+                                         Classes="muted" FontWeight="SemiBold" FontSize="12"
+                                         TextTrimming="CharacterEllipsis"/>
+                            </Button>
                             <ComboBox Grid.Column="5"
                                       ItemsSource="{Binding StatusOptions}"
                                       SelectedItem="{Binding SelectedStatus}"
@@ -490,9 +590,54 @@
                                       CornerRadius="10" Padding="6,3" FontSize="11" FontWeight="SemiBold"
                                       Foreground="{Binding StatusColor}"
                                       HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="6" Text="{Binding SourceFile}"
-                                       Classes="muted" FontSize="11"
-                                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                            <Panel Grid.Column="6" Background="Transparent">
+                              <Panel.Styles>
+                                <Style Selector="Panel > StackPanel.actionBtns">
+                                  <Setter Property="IsVisible" Value="False"/>
+                                </Style>
+                                <Style Selector="Panel:pointerover > StackPanel.actionBtns">
+                                  <Setter Property="IsVisible" Value="True"/>
+                                </Style>
+                              </Panel.Styles>
+                              <Button Background="Transparent" BorderThickness="0"
+                                      Padding="0" Cursor="Hand"
+                                      Command="{Binding ClickToSearchCommand}" CommandParameter="{Binding SourceFile}"
+                                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                      VerticalAlignment="Center">
+                                <TextBlock Text="{Binding SourceFile}"
+                                           Classes="muted" FontSize="11"
+                                           TextTrimming="CharacterEllipsis"/>
+                              </Button>
+                              <StackPanel Classes="actionBtns" Orientation="Horizontal" Spacing="4"
+                                          HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <Button Background="#1C2A40" BorderThickness="0"
+                                        Width="24" Height="24" Padding="0"
+                                        CornerRadius="4" Cursor="Hand"
+                                        Click="OpenSourceFileFolder"
+                                        ToolTip.Tip="Open file">
+                                  <Button.Styles>
+                                    <Style Selector="Button:pointerover">
+                                      <Setter Property="Background" Value="#2A3A54"/>
+                                    </Style>
+                                  </Button.Styles>
+                                  <PathIcon Width="12" Height="12" Foreground="#A7B4D1"
+                                            Data="M1,3 L5,3 L7,1 L13,1 L13,11 L1,11 Z M2,5 L12,5 L12,10 L2,10 Z"/>
+                                </Button>
+                                <Button Background="#1C2A40" BorderThickness="0"
+                                        Width="24" Height="24" Padding="0"
+                                        CornerRadius="4" Cursor="Hand"
+                                        Click="CopySourceFile"
+                                        ToolTip.Tip="Copy">
+                                  <Button.Styles>
+                                    <Style Selector="Button:pointerover">
+                                      <Setter Property="Background" Value="#2A3A54"/>
+                                    </Style>
+                                  </Button.Styles>
+                                  <PathIcon Width="12" Height="12" Foreground="#A7B4D1"
+                                            Data="M4,2 L4,0 L14,0 L14,10 L12,10 L12,2 Z M0,4 L10,4 L10,14 L0,14 Z M2,6 L8,6 L8,12 L2,12 Z"/>
+                                </Button>
+                              </StackPanel>
+                            </Panel>
                             <!-- Notes icon with flyout -->
                             <Button Grid.Column="7"
                                     Background="Transparent" BorderThickness="0"
