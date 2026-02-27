@@ -184,6 +184,38 @@ public sealed class TransactionRepository : ITransactionRepository
         await ExecuteNonQueryAsync(cmd, ct).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
+    public async Task<int> CountByCategoryAsync(Guid categoryId, CancellationToken ct = default)
+    {
+        if (categoryId == Guid.Empty) throw new ArgumentException("Category id cannot be empty.", nameof(categoryId));
+
+        using var conn = _connectionFactory.CreateOpenConnection();
+        using var cmd = conn.CreateCommand();
+
+        cmd.CommandText = @"SELECT COUNT(DISTINCT id) FROM transactions WHERE category_id = @category_id;";
+        AddParam(cmd, "@category_id", categoryId.ToString());
+
+        var scalar = await ExecuteScalarAsync(cmd, ct).ConfigureAwait(false);
+        return Convert.ToInt32(scalar);
+    }
+
+    /// <inheritdoc />
+    public async Task ReassignCategoryAsync(Guid fromCategoryId, Guid toCategoryId, CancellationToken ct = default)
+    {
+        if (fromCategoryId == Guid.Empty) throw new ArgumentException("Source category id cannot be empty.", nameof(fromCategoryId));
+        if (toCategoryId == Guid.Empty) throw new ArgumentException("Target category id cannot be empty.", nameof(toCategoryId));
+
+        using var conn = _connectionFactory.CreateOpenConnection();
+        using var cmd = conn.CreateCommand();
+
+        cmd.CommandText = @"UPDATE transactions SET category_id = @to_id, status = @status WHERE category_id = @from_id;";
+        AddParam(cmd, "@from_id", fromCategoryId.ToString());
+        AddParam(cmd, "@to_id", toCategoryId.ToString());
+        AddParam(cmd, "@status", (int)TransactionStatus.NeedsReview);
+
+        await ExecuteNonQueryAsync(cmd, ct).ConfigureAwait(false);
+    }
+
     // ─── SQL Constants ─────────────────────────────────────────────
 
     private const string UpsertSql = @"

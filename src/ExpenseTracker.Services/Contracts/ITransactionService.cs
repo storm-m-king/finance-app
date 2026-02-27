@@ -49,4 +49,9 @@ public interface ITransactionService
     /// Updates optional notes on a transaction.
     /// </summary>
     Task UpdateNotesAsync(Guid transactionId, string? notes, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the number of distinct transactions assigned to a given category.
+    /// </summary>
+    Task<int> GetTransactionCountByCategoryAsync(Guid categoryId, CancellationToken ct = default);
 }
