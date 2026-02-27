@@ -32,7 +32,8 @@
                   Command="{Binding OpenNeedsReview}"
                   HorizontalAlignment="Right"
                   VerticalAlignment="Top"
-                  Padding="16,10">
+                  Padding="16,10"
+                  IsVisible="{Binding ShowNeedsReview}">
 
             <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
               <Svg Width="18"
