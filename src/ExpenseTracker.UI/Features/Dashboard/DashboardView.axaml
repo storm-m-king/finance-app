@@ -1,238 +1,47 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:conv="using:ExpenseTracker.UI.Converters"
+             xmlns:local="using:ExpenseTracker.UI.Features.Dashboard"
              x:Class="ExpenseTracker.UI.Features.Dashboard.DashboardView">
 
-  <UserControl.Resources>
-    <!-- Proportional bar width: Width = Track.Bounds.Width * Percent -->
-    <conv:PercentToWidthConverter x:Key="PercentToWidth"/>
-    <conv:ResourceBrushConverter x:Key="ResourceBrush"/>
-  </UserControl.Resources>
+  <Grid RowDefinitions="Auto,*" Margin="0,0,12,0">
 
-  <!-- Scroll container so content can exceed window height -->
-  <ScrollViewer VerticalScrollBarVisibility="Auto"
-                HorizontalScrollBarVisibility="Disabled">
+    <!-- Header -->
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+      <StackPanel>
+        <TextBlock Text="Dashboard" FontSize="32" FontWeight="Bold"/>
+        <TextBlock Text="Terminal" Classes="muted"/>
+      </StackPanel>
 
-    <!-- Add bottom padding so the last section isn't tight to the edge -->
-    <Border Padding="0,0,12,24">
+      <!-- NeedsReview pill -->
+      <Button Grid.Column="1"
+              Classes="pill"
+              Command="{Binding OpenNeedsReview}"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Top"
+              Padding="16,10"
+              IsVisible="{Binding ShowNeedsReview}">
+        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <Svg Width="18" Height="18"
+               Path="/Assets/Icons/circle-alert.svg"
+               Stretch="Uniform"/>
+          <TextBlock Text="{Binding NeedsReviewCount, StringFormat={}{0} Need Review}"
+                     VerticalAlignment="Center"
+                     Foreground="White"
+                     FontWeight="SemiBold"/>
+        </StackPanel>
+      </Button>
+    </Grid>
 
-      <Grid RowDefinitions="Auto,Auto,Auto,Auto"
-            RowSpacing="18">
-
-        <!-- Header -->
-        <Grid ColumnDefinitions="*,Auto" Grid.Row="0">
-          <StackPanel>
-            <TextBlock Text="Dashboard" FontSize="32" FontWeight="Bold"/>
-            <TextBlock Text="Financial Overview" Classes="muted"/>
-          </StackPanel>
-
-          <!-- Pill stays sized to content -->
-          <Button Grid.Column="1"
-                  Classes="pill"
-                  Command="{Binding OpenNeedsReview}"
-                  HorizontalAlignment="Right"
-                  VerticalAlignment="Top"
-                  Padding="16,10"
-                  IsVisible="{Binding ShowNeedsReview}">
-
-            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-              <Svg Width="18"
-                       Height="18"
-                       Path="/Assets/Icons/circle-alert.svg"
-                       Stretch="Uniform" />
-
-              <TextBlock Text="{Binding NeedsReviewCount, StringFormat={}{0} Need Review}"
-                         VerticalAlignment="Center"
-                         Foreground="White"
-                         FontWeight="SemiBold"/>
-            </StackPanel>
-
-          </Button>
-
-
-        </Grid>
-
-        <!-- Metric cards row -->
-        <ItemsControl Grid.Row="1" ItemsSource="{Binding Metrics}">
-          <ItemsControl.ItemsPanel>
-            <ItemsPanelTemplate>
-              <UniformGrid Columns="4" />
-            </ItemsPanelTemplate>
-          </ItemsControl.ItemsPanel>
-
-          <ItemsControl.ItemTemplate>
-            <DataTemplate>
-              <Border Classes="card" Margin="6">
-                <StackPanel Spacing="8">
-                  <TextBlock Text="{Binding Title}" Classes="muted"/>
-                  <TextBlock Text="{Binding Value}" FontSize="24" FontWeight="Bold"/>
-                  <TextBlock Text="{Binding Delta}" Classes="muted"/>
-                </StackPanel>
-              </Border>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-
-        <!-- Middle: Spending chart (left) + Cash (right) -->
-        <Grid Grid.Row="2" ColumnDefinitions="2*,1*" ColumnSpacing="18">
-
-          <!-- Spending chart placeholder -->
-          <Border Classes="card">
-            <StackPanel Spacing="10">
-              <TextBlock Text="Spending" FontSize="18" FontWeight="Bold"/>
-              <TextBlock Text="This month vs. last month" Classes="muted"/>
-
-              <Border Classes="inset"
-                      Height="260"
-                      CornerRadius="14"
-                      HorizontalAlignment="Stretch"/>
-
-              <TextBlock Text="(Chart placeholder — wire LiveCharts next)"
-                         Classes="muted"
-                         Opacity="0.75"/>
-            </StackPanel>
-          </Border>
-
-          <!-- Cash / accounts -->
-          <Border Grid.Column="1" Classes="card">
-            <StackPanel Spacing="14">
-              <TextBlock Text="Cash" FontSize="18" FontWeight="Bold"/>
-
-              <!-- Total cash callout -->
-              <Border Classes="inset"
-                      CornerRadius="14"
-                      Padding="16">
-                <StackPanel Spacing="4">
-                  <TextBlock Text="$222,560.79" FontSize="28" FontWeight="Bold"/>
-                  <TextBlock Text="Total Cash" Classes="muted"/>
-                </StackPanel>
-              </Border>
-
-              <!-- Account rows -->
-              <Grid RowDefinitions="Auto,Auto"
-                    ColumnDefinitions="Auto,*,Auto"
-                    RowSpacing="10"
-                    ColumnSpacing="10">
-
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Checking" FontWeight="SemiBold"/>
-                <TextBlock Grid.Row="0" Grid.Column="1" Text="•••• 008" Classes="muted"/>
-                <TextBlock Grid.Row="0" Grid.Column="2" Text="$125,430.50" HorizontalAlignment="Right"/>
-
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Savings" FontWeight="SemiBold"/>
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="•••• 294" Classes="muted"/>
-                <TextBlock Grid.Row="1" Grid.Column="2" Text="$97,130.29" HorizontalAlignment="Right"/>
-              </Grid>
-
-            </StackPanel>
-          </Border>
-
-        </Grid>
-
-        <!-- Bottom: (Row 1) Cash Flow Trends + Transactions  (Row 2) Top Categories -->
-        <Grid Grid.Row="3" RowDefinitions="Auto,Auto" RowSpacing="18">
-
-          <!-- Row 1: Cash Flow Trends + Transactions -->
-          <Grid Grid.Row="0" ColumnDefinitions="2*,1*" ColumnSpacing="18">
-
-            <!-- Cash Flow Trends placeholder -->
-            <Border Classes="card">
-              <StackPanel Spacing="10">
-                <TextBlock Text="Cash Flow Trends" FontSize="18" FontWeight="Bold"/>
-                <TextBlock Text="Income vs. Expenses" Classes="muted"/>
-
-                <Border Classes="inset"
-                        Height="240"
-                        CornerRadius="14"/>
-
-                <TextBlock Text="(Chart placeholder — wire bar chart next)"
-                           Classes="muted"
-                           Opacity="0.75"/>
-              </StackPanel>
-            </Border>
-
-            <!-- Transactions -->
-            <Border Grid.Column="1" Classes="card">
-              <StackPanel Spacing="12">
-                <TextBlock Text="Recent Transactions" FontSize="18" FontWeight="Bold"/>
-
-                <ItemsControl ItemsSource="{Binding RecentTransactions}">
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                      <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,10">
-                        <!-- left icon/emoji -->
-                        <TextBlock Text="🛒" Opacity="0.85" Margin="0,0,10,0"/>
-
-                        <TextBlock Grid.Column="1"
-                                   Text="{Binding Merchant}"
-                                   FontWeight="SemiBold"/>
-
-                        <TextBlock Grid.Column="2"
-                                   Text="{Binding Amount}"
-                                   Classes="muted"
-                                   Opacity="0.95"
-                                   HorizontalAlignment="Right"/>
-                      </Grid>
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-              </StackPanel>
-            </Border>
-
-          </Grid>
-
-          <!-- Row 2: Top Categories -->
-          <Border Grid.Row="1" Classes="card">
-            <StackPanel Spacing="12">
-              <TextBlock Text="Top Expense Categories" FontSize="18" FontWeight="Bold"/>
-
-              <ItemsControl ItemsSource="{Binding TopCategories}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <Grid RowDefinitions="Auto,Auto"
-                          ColumnDefinitions="*,Auto"
-                          RowSpacing="6"
-                          Margin="0,10">
-
-                      <TextBlock Grid.Row="0" Grid.Column="0"
-                                 Text="{Binding Name}"
-                                 FontWeight="SemiBold"/>
-
-                      <TextBlock Grid.Row="0" Grid.Column="1"
-                                 Text="{Binding Amount, StringFormat={}{0:C}}"
-                                 HorizontalAlignment="Right"
-                                 Classes="muted"
-                                 Opacity="0.95"/>
-
-                      <!-- Track -->
-                      <Border Grid.Row="1" Grid.ColumnSpan="2"
-                              Classes="barTrack"
-                              x:Name="Track"/>
-
-                      <!-- Fill (Width bound proportionally) -->
-                      <Border Grid.Row="1"
-                              Classes="barFill"
-                              HorizontalAlignment="Left"
-                              Background="{Binding ColorKey, Converter={StaticResource ResourceBrush}}">
-                        <Border.Width>
-                          <MultiBinding Converter="{StaticResource PercentToWidth}">
-                            <Binding Path="Percent"/>
-                            <Binding ElementName="Track" Path="Bounds.Width"/>
-                          </MultiBinding>
-                        </Border.Width>
-                      </Border>
-
-                    </Grid>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-
-            </StackPanel>
-          </Border>
-
-        </Grid>
-
-      </Grid>
+    <!-- Terminal -->
+    <Border Grid.Row="1"
+            Background="#0C0C0C"
+            BorderBrush="#1C2A40"
+            BorderThickness="1"
+            CornerRadius="8"
+            ClipToBounds="True"
+            Padding="4">
+      <local:TerminalControl x:Name="Terminal"/>
     </Border>
-  </ScrollViewer>
+
+  </Grid>
 </UserControl>

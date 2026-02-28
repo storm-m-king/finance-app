@@ -15,6 +15,7 @@
         <PackageReference Include="Avalonia.Svg.Skia" Version="11.*" />
         <PackageReference Include="Avalonia.Themes.Fluent" Version="11.*" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
+        <PackageReference Include="sch.pty.net" Version="0.3.36-pre" />
     </ItemGroup>
     <ItemGroup>
       <AdditionalFiles Include="Features\Import\ImportView\ImportView.axaml" />
@@ -33,4 +34,13 @@
         <SubType>Code</SubType>
       </Compile>
     </ItemGroup>
+    <!-- Fix sch.pty.net native DLLs not copied for AnyCPU builds -->
+    <Target Name="CopyConPtyNative" AfterTargets="Build" Condition="'$(OS)' == 'Windows_NT'">
+      <ItemGroup>
+        <_PtyFiles Include="$(NuGetPackageRoot)sch.pty.net\0.3.36-pre\build\x64\**\*" />
+      </ItemGroup>
+      <Copy SourceFiles="@(_PtyFiles)"
+            DestinationFiles="$(OutputPath)%(RecursiveDir)%(Filename)%(Extension)"
+            SkipUnchangedFiles="true" />
+    </Target>
 </Project>

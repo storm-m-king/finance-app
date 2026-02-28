@@ -126,6 +126,9 @@ internal static class Program
         services.AddSingleton<ICategoryRepository, CategoryRepository>();
         services.AddSingleton<IRuleRepository, RuleRepository>();
         services.AddSingleton<ITransactionRepository, TransactionRepository>();
+
+        // Terminal session (singleton — survives navigation between screens)
+        services.AddSingleton<TerminalSession>();
         
 
         // Short-lived startup helpers used during application initialization.
